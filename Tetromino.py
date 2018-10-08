@@ -4,7 +4,7 @@
 # Creative Commons BY-NC-SA 3.0 US
 import random, time, pygame, sys
 from pygame.locals import *
-
+#region constants
 FPS = 25
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
@@ -16,7 +16,8 @@ MOVESIDEWAYSFREQ = 0.15
 MOVEDOWNFREQ = 0.1
 XMARGIN = int((WINDOWWIDTH - BOARDWIDTH * BOXSIZE) / 2)
 TOPMARGIN = WINDOWHEIGHT - (BOARDHEIGHT * BOXSIZE) - 5
-
+#endregion
+#region shape colors
 #               R    G    B
 WHITE       = (255, 255, 255)
 GRAY        = (185, 185, 185)
@@ -29,7 +30,8 @@ BLUE        = (  0,   0, 155)
 LIGHTBLUE   = ( 20,  20, 175)
 YELLOW      = (155, 155,   0)
 LIGHTYELLOW = (175, 175,  20)
-
+#endregion
+#region color constants and template constants
 BORDERCOLOR = BLUE
 BGCOLOR = BLACK
 TEXTCOLOR = WHITE
@@ -39,7 +41,8 @@ LIGHTCOLORS = (LIGHTBLUE, LIGHTGREEN, LIGHTRED, LIGHTYELLOW)
 assert len(COLORS) == len(LIGHTCOLORS) # each color must have light color
 TEMPLATEWIDTH = 5
 TEMPLATEHEIGHT = 5
-
+#endregionx
+#region shapes
 S_SHAPE_TEMPLATE = [['.....',
                      '.....',
                      '..OO.',
@@ -149,6 +152,7 @@ SHAPES = {'S': S_SHAPE_TEMPLATE,
           'I': I_SHAPE_TEMPLATE,
           'O': O_SHAPE_TEMPLATE,
           'T': T_SHAPE_TEMPLATE}
+#endregion
 
 def main():
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
