@@ -4,6 +4,7 @@
 # Creative Commons BY-NC-SA 3.0 US
 import random, time, pygame, sys
 from pygame.locals import *
+import ReinforcementLearning as rl
 #region constants
 FPS = 25
 WINDOWWIDTH = 640
@@ -154,7 +155,8 @@ SHAPES = {'S': S_SHAPE_TEMPLATE,
           'T': T_SHAPE_TEMPLATE}
 #endregion
 
-def main():
+
+def main(weights, explore_change):
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
@@ -165,11 +167,11 @@ def main():
 
     showTextScreen('Tetromino')
     while True: # game loop
-        runGame()
+        runGame(weights, explore_change)
         #pygame.mixer.music.stop()
         showTextScreen('Game Over')
 
-def runGame():
+def runGame(weights, explore_change):
     # setup variables for the start of the game
     board = getBlankBoard()
     lastMoveDownTime = time.time()
@@ -178,8 +180,8 @@ def runGame():
     movingDown = False # note: there is no movingUp variable
     movingLeft = False
     movingRight = False
-    score = 0
-    level, fallFreq = calculateLevelAndFallFreq(score)
+    #score = 0
+    level, fallFreq = calculateLevelAndFallFreq(rl.score)
     fallingPiece = getNewPiece()
     nextPiece = getNewPiece()
 
@@ -270,8 +272,8 @@ def runGame():
             if not isValidPosition(board, fallingPiece, adjY=1):
                 # falling piece has landed, set it on the board
                 addToBoard(board, fallingPiece)
-                score += removeCompleteLines(board)
-                level, fallFreq = calculateLevelAndFallFreq(score)
+                rl.score += removeCompleteLines(board)
+                level, fallFreq = calculateLevelAndFallFreq(rl.score)
                 fallingPiece = None
             else:
                 # piece did not land, just move the block down
@@ -281,7 +283,7 @@ def runGame():
         # drawing everything on the screen
         DISPLAYSURF.fill(BGCOLOR)
         drawBoard(board)
-        drawStatus(score, level)
+        drawStatus(rl.score, level)
         drawNextPiece(nextPiece)
         if fallingPiece != None:
             drawPiece(fallingPiece)
@@ -295,6 +297,10 @@ def makeTextObjs(text, font, color):
 
 def terminate():
     pygame.quit()
+    log1 = open("log/RL_weights.txt", "w")
+    for element in rl.weights:
+        print(element, file=log1)
+    print(rl.score, file=log1)
     sys.exit()
 
 def checkForKeyPress():
@@ -477,4 +483,4 @@ def drawNextPiece(piece):
     drawPiece(piece, pixelx=WINDOWWIDTH-120, pixely=100)
 
 if __name__ == '__main__':
-    main()
+    main(rl.weights, rl.explore_change)

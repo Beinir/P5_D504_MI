@@ -1,6 +1,3 @@
-import Tetromino as tet
-import random
-
 #region Constants
 gamma = 0.6
 learning_rate = 0.6
@@ -18,4 +15,5 @@ weights = [-1, -1, -1, -30]
     * Maximum height on the board.
     * Number of holes on the board.
 """
+score = 0
 #endregion
