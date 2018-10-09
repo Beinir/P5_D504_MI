@@ -5,6 +5,11 @@
 import random, time, pygame, sys
 from pygame.locals import *
 
+# genetic variables
+MUTATION = 5
+CHROMOSOME_SIZE = 3
+POPULATION_SIZE = 10
+
 FPS = 25
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
@@ -150,22 +155,8 @@ SHAPES = {'S': S_SHAPE_TEMPLATE,
           'O': O_SHAPE_TEMPLATE,
           'T': T_SHAPE_TEMPLATE}
 
-def main():
-    global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
-    pygame.init()
-    FPSCLOCK = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-    BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
-    BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
-    pygame.display.set_caption('Tetromino')
 
-    showTextScreen('Tetromino')
-    while True: # game loop
-        runGame()
-        #pygame.mixer.music.stop()
-        showTextScreen('Game Over')
-
-def runGame():
+def runGame(chromosome):
     # setup variables for the start of the game
     board = getBlankBoard()
     lastMoveDownTime = time.time()
@@ -176,6 +167,7 @@ def runGame():
     movingRight = False
     score = 0
     level, fallFreq = calculateLevelAndFallFreq(score)
+    current_move = [0, 0]
     fallingPiece = getNewPiece()
     nextPiece = getNewPiece()
 
@@ -187,8 +179,12 @@ def runGame():
             lastFallTime = time.time() # reset lastFallTime
 
             if not isValidPosition(board, fallingPiece):
-                return # can't fit a new piece on the board, so game over
+                return  # can't fit a new piece on the board, so game over
+
+            current_move = find_best_move(board, fallingPiece, chromosome)
+
         checkForQuit()
+        current_move = make_move(current_move)
         for event in pygame.event.get(): # event handling loop
             if event.type == KEYUP:
                 if (event.key == K_p):
@@ -284,6 +280,8 @@ def runGame():
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
+
+        chromosome.high_score = score  # updates the high_score for the chromosome used to play the current game
 
 def makeTextObjs(text, font, color):
     surf = font.render(text, True, color)
@@ -472,5 +470,168 @@ def drawNextPiece(piece):
     # draw the "next" piece
     drawPiece(piece, pixelx=WINDOWWIDTH-120, pixely=100)
 
+
+# region Genetic algorithm
+class Chromosome:
+    attributes = []
+    high_score = 0
+
+    def __init__(self, size):
+
+        for i in range(size):
+            self.attributes.append(random.uniform(-10.0, 10.0))
+
+
+def create_population():
+    population = []
+
+    for i in range(POPULATION_SIZE):
+        population.append(Chromosome(CHROMOSOME_SIZE))
+
+    return population
+
+
+def crossover(population):
+    offspring = []
+
+    while len(population) != 0:
+        parent1 = population.pop[random.randrange(len(population))]
+        parent2 = population.pop[random.randrange(len(population))]
+
+        child = Chromosome(CHROMOSOME_SIZE)
+
+        for i in range(CHROMOSOME_SIZE):
+            if random.randint(1, 100) > MUTATION:
+                if random.randint(1, 2) == 1:
+                    child.attributes[i] = parent1.attributes[i]
+                else:
+                    child.attributes[i] = parent2.attributes[i]
+            else:
+                child.attributes[i] = random.uniform(-10.0, 10.0)
+
+        offspring.append(child)
+
+    return offspring
+
+
+def selection(population):
+    copied_population = copy.copy(population)
+    strongest_chromosomes = []
+
+    while len(population) != 0:
+        x = population.pop[random.randrange(len(population))]
+        y = population.pop[random.randrange(len(population))]
+
+        if x.high_score > y.high_score:
+            strongest_chromosomes.append(x)
+        else:
+            strongest_chromosomes.append(y)
+
+    offspring = crossover(strongest_chromosomes)
+
+    copied_population.sort(key=operator.attrgetter('high_score'))
+
+    for i in range(population / 4):  # pops 1/4 lowest scoring chromosomes
+        copied_population.pop(i)
+
+    for i in range(offspring):
+        copied_population.append(offspring[i])
+
+    return copied_population
+# endregion
+
+def get_expected_score(test_board, completed_lines, chromosome):
+    # Calculates the score of a given board state given the attributes of the chromosome
+    aggregate_height = get_aggregate_height(test_board)
+    holes = get_number_of_holes(test_board)
+
+    a = chromosome.attributes[0]
+    b = chromosome.attributes[1]
+    c = chromosome.attributes[2]
+
+    expected_score = a * aggregate_height + b * completed_lines + c * holes
+
+    return expected_score
+
+
+def simulate_board(test_board, test_piece, move):
+    rot = move[0]
+    sideways = move[1]
+
+    if test_piece is None:
+        return None
+
+    for i in range(0, rot):  # TODO: How does this work?
+        test_piece['rotation'] = (test_piece['rotation'] + 1) % len(PIECES[test_piece['shape']])
+
+    if not is_valid_position(test_board, test_piece, sideways, 0):
+        return None
+
+    test_piece['x'] += sideways
+    for i in range(0, BOARDHEIGHT):
+        if is_valid_position(test_board, test_piece, 0, 1):
+            test_piece['y'] = i
+
+    add_to_board(test_board, test_piece)
+    completed_lines, test_board = remove_complete_lines(test_board)
+
+    return test_board, completed_lines
+
+
+def find_best_move(board, piece, chromosome):
+    moves = []
+    scores = []
+
+    for rot in range(0, len(PIECES[piece['shape']])):  # TODO: How does this work?
+        for sideways in range(-5, 6):  # TODO: Why this range?
+            move = [rot, sideways]  # TODO: change array to tuple?
+            test_board = copy.deepcopy(board)
+            test_piece = copy.deepcopy(piece)
+            test_board = simulate_board(test_board, test_piece, move)
+            if test_board is not None:
+                moves.append(move)
+                scores.append(get_expected_score(test_board[0], chromosome))
+            highest_score = max(scores)
+            best_move = moves[scores.index(highest_score)]
+
+    return best_move
+
+
+def make_move(move):
+    rot = move[0]
+    sideways = move[1]
+    if rot != 0:
+        pyautogui.press('up')
+        rot -= 1
+    else:
+        if sideways == 0:
+            pyautogui.press('space')
+        if sideways < 0:
+            pyautogui.press('left')
+            sideways += 1
+        if sideways > 0:
+            pyautogui.press('right')
+            sideways -= 1
+
+    return [rot, sideways]
+
+
 if __name__ == '__main__':
-    main()
+    global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
+    pygame.init()
+    FPSCLOCK = pygame.time.Clock()
+    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
+    BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
+    pygame.display.set_caption('Tetromino')
+
+    showTextScreen('Tetromino')
+
+    population = create_population()
+
+    while True:  # game loop
+        for i in range(len(population)):
+            runGame(population[i])
+            showTextScreen('Game Over')
+
+        selection(population)
