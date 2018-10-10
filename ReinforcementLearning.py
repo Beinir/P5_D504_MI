@@ -1,5 +1,7 @@
 import pyautogui as gui
 import Tetromino as tet
+import copy
+import random
 #region Constants
 gamma = 0.6
 learning_rate = 0.6
@@ -114,10 +116,33 @@ def simulate_board(test_board, test_piece, move):
     return test_board, one_step_reward
 
 
-#def find_best_move():
+def get_expected_score(test_board, weights):
+    height_sum, diff_heights, max_height, holes = get_parameters(test_board)
+    A = weights[0]
+    B = weights[1]
+    C = weights[2]
+    D = weights[3]
+    return float(A * height_sum + B * diff_heights + C * max_height + D * holes)
 
 
+def find_best_move(board, piece, weights, explore_change):
+    move_list = []
+    score_list = []
+    for rot in range(0, len(tet.PIECES[piece['shape']])):
+        for lateral in range(-5, 6):
+            move = [rot, lateral]
+            test_board = copy.deepcopy(board)
+            test_piece = copy.deepcopy(piece)
+            test_board = simulate_board(test_board, test_piece, move)
+            if test_board is not None:
+                move_list.append(move)
+                test_score = get_expected_score(test_board, weights)
+                score_list.append(test_score)
+    best_score = max(score_list)
+    best_move = move_list[score_list.index(best_score)]
 
-#def make_test_board():
-
+    if random.random() < explore_change:
+        return move_list[random.randint(0, len(move_list) - 1)]
+    else:
+        return best_move
 
