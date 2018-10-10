@@ -193,7 +193,9 @@ def runGame(weights, explore_change):
             lastFallTime = time.time() # reset lastFallTime
 
             if not isValidPosition(board, fallingPiece):
-                return # can't fit a new piece on the board, so game over
+                return # can't fit a new piece on the board, so game over TODO: game over, update/return what we need
+
+
         checkForQuit()
         for event in pygame.event.get(): # event handling loop
             if event.type == KEYUP:

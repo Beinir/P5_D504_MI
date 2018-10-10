@@ -1,4 +1,5 @@
 import pyautogui as gui
+import Tetromino as tet
 #region Constants
 gamma = 0.6
 learning_rate = 0.6
@@ -17,7 +18,10 @@ weights = [-1, -1, -1, -30]
     * Number of holes on the board.
 """
 score = 0
+optimal_move = [0, 0]  # [Rotation, Lateral movement]
+temp_move = [0, 0]  # [Rotation, Lateral movement]
 #endregion
+
 
 def make_move(current_move):
     rotation = current_move[0]
@@ -39,7 +43,79 @@ def make_move(current_move):
     return [rotation, lateral]
 
 
+def get_parameters(test_board):
+    # Returns number of holes, sum of heights, difference between tallest, shortest column and max height
+    heights = [0] * tet.BOARDWIDTH
+    holes = 0
+
+    # Finds the maximum height of each column.
+    # Starts at the top of a column and moves down until an occupied block is found.
+    for i in range(0, tet.BOARDWIDTH):
+        for j in range(0, tet.BOARDHEIGHT):
+            if int(test_board[i][j]) > 0:  # If the cell is occupied the height is stored
+                heights[i] = tet.BOARDHEIGHT - j
+                break
+
+    # Find the difference between the tallest and shortest columns
+    diffs_heights = max(heights) - min(heights)
+
+    # Finds the number of holes
+    for i in range(0, tet.BOARDWIDTH):
+        occupied = 0  # For every column occupied is set to 0.
+        for j in range(0, tet.BOARDHEIGHT):
+            if int(test_board[i][j] > 0):  # If the column is occupied, occupied is set to 1
+                occupied = 1
+            if int(test_board[i][j]) == 0 and occupied == 1:    # If occupied is 1 and there is a hole,
+                                                                # increment holes by 1
+                holes += 1
+
+    return sum(heights), diffs_heights, max(heights), holes
+
+
+def simulate_board(test_board, test_piece, move):
+    # This function simulates placing the current falling piece onto the
+    # board, specified by 'move,' an array with two elements, 'rot' and 'sideways'.
+    # 'rot' gives the number of times the piece is to be rotated ranging in [0:3]
+    # 'sideways' gives the horizontal movement from the piece's current position, in [-9:9]
+    # It removes complete lines and gives returns the next board state as well as the number
+    # of lines cleared.
+
+    rot = move[0]
+    lateral = move[1]
+    test_lines_removed = 0
+    reference_height = get_parameters(test_board)[0]
+
+    if test_piece is None:
+        return None
+
+    # Rotate the test piece to match the specified move
+    for i in range(0, rot):
+        test_piece['rotation'] = (test_piece['rotation'] + 1) % len(tet.PIECES[test_piece['shape']])
+
+    # Tests is the position is valid, if not return none
+    if not tet.isValidPosition(test_board, test_piece, adjX=lateral):
+        return None
+
+    # Move the piece to its specified lateral position
+    test_piece['x'] += lateral
+
+    # Move the piece down until collision
+    for i in range (0, tet.BOARDHEIGHT):
+        if tet.isValidPosition(test_board, test_piece, adjY=1):
+            test_piece['y'] = i
+
+    # Place the piece on the board
+    if tet.isValidPosition(test_board, test_piece):
+        tet.addToBoard(test_board, test_piece)
+        test_lines_removed, test_board = tet.removeCompleteLines(test_board)
+
+    height_sum, diff_heights, max_height, holes = get_parameters(test_board)
+    one_step_reward = 5 * (test_lines_removed * test_lines_removed) - (height_sum - reference_height)
+    return test_board, one_step_reward
+
+
 #def find_best_move():
+
 
 
 #def make_test_board():
