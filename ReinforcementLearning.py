@@ -2,11 +2,12 @@ import pyautogui as gui
 import Tetromino as tet
 import copy
 import random
+import sys
 #region Constants
 gamma = 0.6
 learning_rate = 0.6
 
-explore_change = 1.0
+explore_change = 0
 max_explore_change = 1.0
 min_explore_change = 0.01
 decay_rate = 0.01
@@ -54,9 +55,12 @@ def get_parameters(board):
     # Starts at the top of a column and moves down until an occupied block is found.
     for i in range(0, tet.BOARDWIDTH):
         for j in range(0, tet.BOARDHEIGHT):
-            if int(board[i][j]) > 0:  # If the cell is occupied the height is stored
-                heights[i] = tet.BOARDHEIGHT - j
-                break
+            try:
+                if int(board[i][j]) > 0:  # If the cell is occupied the height is stored
+                    heights[i] = tet.BOARDHEIGHT - j
+                    break
+            except TypeError:
+                print(board)
 
     # Find the difference between the tallest and shortest columns
     diffs_heights = max(heights) - min(heights)
@@ -65,7 +69,7 @@ def get_parameters(board):
     for i in range(0, tet.BOARDWIDTH):
         occupied = 0  # For every column occupied is set to 0.
         for j in range(0, tet.BOARDHEIGHT):
-            if int(board[i][j] > 0):  # If the column is occupied, occupied is set to 1
+            if int(board[i][j]) > 0:  # If the column is occupied, occupied is set to 1
                 occupied = 1
             if int(board[i][j]) == 0 and occupied == 1:    # If occupied is 1 and there is a hole,
                                                                 # increment holes by 1
@@ -83,37 +87,35 @@ def simulate_board(test_board, test_piece, move):
     # of lines cleared.
 
     rot = move[0]
-    lateral = move[1]
+    sideways = move[1]
     test_lines_removed = 0
     reference_height = get_parameters(test_board)[0]
-
     if test_piece is None:
         return None
 
-    # Rotate the test piece to match the specified move
+    # Rotate test_piece to match the desired move
     for i in range(0, rot):
         test_piece['rotation'] = (test_piece['rotation'] + 1) % len(tet.SHAPES[test_piece['shape']])
 
-    # Tests is the position is valid, if not return none
-    if not tet.isValidPosition(test_board, test_piece, adjX=lateral):
+    # Test for move validity!
+    if not tet.is_valid_position(test_board, test_piece, adj_x=sideways, adj_y=0):
+        # The move itself is not valid!
         return None
 
-    # Move the piece to its specified lateral position
-    test_piece['x'] += lateral
-
-    # Move the piece down until collision
-    for i in range (0, tet.BOARDHEIGHT):
-        if tet.isValidPosition(test_board, test_piece, adjY=1):
+    # Move the test_piece to collide on the board
+    test_piece['x'] += sideways
+    for i in range(0, tet.BOARDHEIGHT):
+        if tet.is_valid_position(test_board, test_piece, adj_x=0, adj_y=1):
             test_piece['y'] = i
 
-    # Place the piece on the board
-    if tet.isValidPosition(test_board, test_piece):
-        tet.addToBoard(test_board, test_piece)
-        test_lines_removed, test_board = tet.removeCompleteLines(test_board)
+    # Place the piece on the virtual board
+    if tet.is_valid_position(test_board, test_piece, adj_x=0, adj_y=0):
+        tet.add_to_board(test_board, test_piece)
+        test_lines_removed, test_board = tet.remove_complete_lines(test_board)
 
-    height_sum, diff_heights, max_height, holes = get_parameters(test_board)
+    height_sum, diff_sum, max_height, holes = get_parameters(test_board)
     one_step_reward = 5 * (test_lines_removed * test_lines_removed) - (height_sum - reference_height)
-    return test_board, one_step_reward
+    return test_board#, one_step_reward
 
 
 def get_expected_score(test_board, weights):
@@ -124,6 +126,7 @@ def get_expected_score(test_board, weights):
     D = weights[3]
     return float(A * height_sum + B * diff_heights + C * max_height + D * holes)
 
+
 def find_best_move(board, piece, weights, explore_change):
     move_list = []
     score_list = []
@@ -131,11 +134,12 @@ def find_best_move(board, piece, weights, explore_change):
         for lateral in range(-5, 6):
             move = [rot, lateral]
             test_board = copy.deepcopy(board)
+            test_board2 = list(test_board)
             test_piece = copy.deepcopy(piece)
-            test_board = simulate_board(test_board, test_piece, move)
-            if test_board is not None:
+            test_board3 = simulate_board(test_board2, test_piece, move)
+            if test_board3 is not None:
                 move_list.append(move)
-                test_score = get_expected_score(test_board, weights)
+                test_score = get_expected_score(test_board3, weights)
                 score_list.append(test_score)
     best_score = max(score_list)
     best_move = move_list[score_list.index(best_score)]
