@@ -1,492 +1,545 @@
 # Tetromino (a Tetris clone)
 # By Al Sweigart al@inventwithpython.com
 # http://inventwithpython.com/pygame
-# Creative Commons BY-NC-SA 3.0 US
-import random, time, pygame, sys
-from pygame.locals import *
+# Released under a "Simplified BSD" license
+
+# Imports
+import random
+import time
+import pygame
+import sys
+import math
+import copy
+import pygame.locals as keys
+import pyautogui
+import operator
+from random import shuffle
+import datetime
 
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 10
+POPULATION_SIZE = 64   # TODO: Currently need to be a power of two - fix this in crossover loop
+GENERATION_NUMBER = 1
+BEST_CHROMOSOME_IN_GENERATION = None
 
-FPS = 25
+# Define settings and constants
+pyautogui.PAUSE = 0.03
+pyautogui.FAILSAFE = True
+
+
+FPS = 50
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
 BOXSIZE = 20
 BOARDWIDTH = 10
 BOARDHEIGHT = 20
-BLANK = '.'
-MOVESIDEWAYSFREQ = 0.15
-MOVEDOWNFREQ = 0.1
+BLANK = '0'
+MOVESIDEWAYSFREQ = 0.075
+MOVEDOWNFREQ = 0.05
+
 XMARGIN = int((WINDOWWIDTH - BOARDWIDTH * BOXSIZE) / 2)
 TOPMARGIN = WINDOWHEIGHT - (BOARDHEIGHT * BOXSIZE) - 5
 
-#               R    G    B
-WHITE       = (255, 255, 255)
-GRAY        = (185, 185, 185)
-BLACK       = (  0,   0,   0)
-RED         = (155,   0,   0)
-LIGHTRED    = (175,  20,  20)
-GREEN       = (  0, 155,   0)
-LIGHTGREEN  = ( 20, 175,  20)
-BLUE        = (  0,   0, 155)
-LIGHTBLUE   = ( 20,  20, 175)
-YELLOW      = (155, 155,   0)
-LIGHTYELLOW = (175, 175,  20)
+# Define Color triplets in RGB
+WHITE = (255, 255, 255)
+GRAY = (185, 185, 185)
+BLACK = (0, 0, 0)
+RED = (155, 0, 0)
+LIGHTRED = (175, 20, 20)
+GREEN = (0, 155, 0)
+LIGHTGREEN = (20, 175, 20)
+BLUE = (0, 0, 155)
+LIGHTBLUE = (20, 20, 175)
+YELLOW = (155, 155, 0)
+LIGHTYELLOW = (175, 175, 20)
+CYAN = (0, 185, 185)
+LIGHTCYAN = (0, 255, 255)
+MAGENTA = (185, 0, 185)
+LIGHTMAGENTA = (255, 0, 255)
 
 BORDERCOLOR = BLUE
 BGCOLOR = BLACK
 TEXTCOLOR = WHITE
 TEXTSHADOWCOLOR = GRAY
-COLORS      = (     BLUE,      GREEN,      RED,      YELLOW)
-LIGHTCOLORS = (LIGHTBLUE, LIGHTGREEN, LIGHTRED, LIGHTYELLOW)
-assert len(COLORS) == len(LIGHTCOLORS) # each color must have light color
+COLORS = (GRAY, BLUE, GRAY, GREEN, RED, YELLOW, CYAN, MAGENTA)
+LIGHTCOLORS = (WHITE, LIGHTBLUE, WHITE, LIGHTGREEN, LIGHTRED, LIGHTYELLOW,
+               LIGHTCYAN, LIGHTMAGENTA)
+
 TEMPLATEWIDTH = 5
 TEMPLATEHEIGHT = 5
 
-S_SHAPE_TEMPLATE = [['.....',
-                     '.....',
-                     '..OO.',
-                     '.OO..',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..OO.',
-                     '...O.',
-                     '.....']]
+S_SHAPE_TEMPLATE = [['00000', '00000', '00110', '01100', '00000'],
+                    ['00000', '00100', '00110', '00010', '00000']]
 
-Z_SHAPE_TEMPLATE = [['.....',
-                     '.....',
-                     '.OO..',
-                     '..OO.',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '.OO..',
-                     '.O...',
-                     '.....']]
+Z_SHAPE_TEMPLATE = [['00000', '00000', '01100', '00110', '00000'],
+                    ['00000', '00100', '01100', '01000', '00000']]
 
-I_SHAPE_TEMPLATE = [['..O..',
-                     '..O..',
-                     '..O..',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     'OOOO.',
-                     '.....',
-                     '.....']]
+I_SHAPE_TEMPLATE = [['00100', '00100', '00100', '00100', '00000'],
+                    ['00000', '00000', '11110', '00000', '00000']]
 
-O_SHAPE_TEMPLATE = [['.....',
-                     '.....',
-                     '.OO..',
-                     '.OO..',
-                     '.....']]
+O_SHAPE_TEMPLATE = [['00000', '00000', '01100', '01100', '00000']]
 
-J_SHAPE_TEMPLATE = [['.....',
-                     '.O...',
-                     '.OOO.',
-                     '.....',
-                     '.....'],
-                    ['.....',
-                     '..OO.',
-                     '..O..',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     '.OOO.',
-                     '...O.',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..O..',
-                     '.OO..',
-                     '.....']]
+J_SHAPE_TEMPLATE = [['00000', '01000', '01110', '00000',
+                     '00000'], ['00000', '00110', '00100', '00100', '00000'],
+                    ['00000', '00000', '01110', '00010',
+                     '00000'], ['00000', '00100', '00100', '01100', '00000']]
+L_SHAPE_TEMPLATE = [['00000', '00010', '01110', '00000',
+                     '00000'], ['00000', '00100', '00100', '00110', '00000'],
+                    ['00000', '00000', '01110', '01000',
+                     '00000'], ['00000', '01100', '00100', '00100', '00000']]
 
-L_SHAPE_TEMPLATE = [['.....',
-                     '...O.',
-                     '.OOO.',
-                     '.....',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..O..',
-                     '..OO.',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     '.OOO.',
-                     '.O...',
-                     '.....'],
-                    ['.....',
-                     '.OO..',
-                     '..O..',
-                     '..O..',
-                     '.....']]
+T_SHAPE_TEMPLATE = [['00000', '00100', '01110', '00000',
+                     '00000'], ['00000', '00100', '00110', '00100', '00000'],
+                    ['00000', '00000', '01110', '00100',
+                     '00000'], ['00000', '00100', '01100', '00100', '00000']]
 
-T_SHAPE_TEMPLATE = [['.....',
-                     '..O..',
-                     '.OOO.',
-                     '.....',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..OO.',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     '.OOO.',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '.OO..',
-                     '..O..',
-                     '.....']]
-
-SHAPES = {'S': S_SHAPE_TEMPLATE,
-          'Z': Z_SHAPE_TEMPLATE,
-          'J': J_SHAPE_TEMPLATE,
-          'L': L_SHAPE_TEMPLATE,
-          'I': I_SHAPE_TEMPLATE,
-          'O': O_SHAPE_TEMPLATE,
-          'T': T_SHAPE_TEMPLATE}
+PIECES = {
+    'S': S_SHAPE_TEMPLATE,
+    'Z': Z_SHAPE_TEMPLATE,
+    'J': J_SHAPE_TEMPLATE,
+    'L': L_SHAPE_TEMPLATE,
+    'I': I_SHAPE_TEMPLATE,
+    'O': O_SHAPE_TEMPLATE,
+    'T': T_SHAPE_TEMPLATE
+}
 
 
-def runGame(chromosome):
+def run_game(chromosome):
+    """Runs a full game of tetris, learning and updating the policy as the game progresses.
+
+    Arguments:
+        weights {list} -- list of four floats, defining the piece placement policy and denoting the respective weighting
+                          of the four features:
+                            * Sum of all column heights
+                            * Sum of absolute column differences
+                            * Maximum height on the board
+                            * Number of holes on the board
+        explore_change {float} -- A float between 0 and 1 which determines the probability that a random move will be
+                                   selected instead of the best move per the current policy.
+
+    Returns:
+        score {int} -- The integer score of the finished game.
+        weights {list} -- The same list as the argument, piped to allow for persistent learning across games.
+        explore_change {float} -- The same parameter as the input argument, piped to allow for persistent learning
+                                    across games.
+    """
+
     # setup variables for the start of the game
-    board = getBlankBoard()
-    lastMoveDownTime = time.time()
-    lastMoveSidewaysTime = time.time()
-    lastFallTime = time.time()
-    movingDown = False # note: there is no movingUp variable
-    movingLeft = False
-    movingRight = False
+    board = get_blank_board()
+    last_move_down_time = time.time()
+    last_lateral_time = time.time()
+    last_fall_time = time.time()
+    moving_down = False  # note: there is no movingUp variable
+    moving_left = False
+    moving_right = False
     score = 0
-    level, fallFreq = calculateLevelAndFallFreq(score)
-    current_move = [0, 0]
-    fallingPiece = getNewPiece()
-    nextPiece = getNewPiece()
+    level, fall_freq = get_level_and_fall_freq(score)
+    current_move = [0, 0]  # Relative Rotation, lateral movement
+    falling_piece = get_new_piece()
+    next_piece = get_new_piece()
 
-    while True: # main game loop
-        if fallingPiece == None:
+    while True:  # game loop
+
+        if falling_piece is None:
             # No falling piece in play, so start a new piece at the top
-            fallingPiece = nextPiece
-            nextPiece = getNewPiece()
-            lastFallTime = time.time() # reset lastFallTime
+            falling_piece = next_piece
+            next_piece = get_new_piece()
+            last_fall_time = time.time()  # reset last_fall_time
 
-            if not isValidPosition(board, fallingPiece):
-                return  # can't fit a new piece on the board, so game over
+            if not is_valid_position(board, falling_piece):
+                return
 
-            current_move = find_best_move(board, fallingPiece, chromosome)
+            current_move = find_best_move(board, falling_piece, chromosome)
 
-        checkForQuit()
+        check_for_quit()
         current_move = make_move(current_move)
-        for event in pygame.event.get(): # event handling loop
-            if event.type == KEYUP:
-                if (event.key == K_p):
+        for event in pygame.event.get():  # event handling loop
+            if event.type == keys.KEYUP:
+                if event.key == keys.K_p:
                     # Pausing the game
                     DISPLAYSURF.fill(BGCOLOR)
-                    #pygame.mixer.music.stop()
-                    showTextScreen('Paused') # pause until a key press
-                    #pygame.mixer.music.play(-1, 0.0)
-                    lastFallTime = time.time()
-                    lastMoveDownTime = time.time()
-                    lastMoveSidewaysTime = time.time()
-                elif (event.key == K_LEFT or event.key == K_a):
-                    movingLeft = False
-                elif (event.key == K_RIGHT or event.key == K_d):
-                    movingRight = False
-                elif (event.key == K_DOWN or event.key == K_s):
-                    movingDown = False
+                    show_text_screen('Paused')  # pause until a key press
+                    last_fall_time = time.time()
+                    last_move_down_time = time.time()
+                    last_lateral_time = time.time()
+                elif (event.key == keys.K_LEFT or event.key == keys.K_a):
+                    moving_left = False
+                elif (event.key == keys.K_RIGHT or event.key == keys.K_d):
+                    moving_right = False
+                elif (event.key == keys.K_DOWN or event.key == keys.K_s):
+                    moving_down = False
 
-            elif event.type == KEYDOWN:
-                # moving the block sideways
-                if (event.key == K_LEFT or event.key == K_a) and isValidPosition(board, fallingPiece, adjX=-1):
-                    fallingPiece['x'] -= 1
-                    movingLeft = True
-                    movingRight = False
-                    lastMoveSidewaysTime = time.time()
+            elif event.type == keys.KEYDOWN:
+                # moving the piece sideways
+                if (event.key == keys.K_LEFT or event.key == keys.K_a) and is_valid_position(
+                            board, falling_piece, adj_x=-1):
+                    falling_piece['x'] -= 1
+                    moving_left = True
+                    moving_right = False
+                    last_lateral_time = time.time()
 
-                elif (event.key == K_RIGHT or event.key == K_d) and isValidPosition(board, fallingPiece, adjX=1):
-                    fallingPiece['x'] += 1
-                    movingRight = True
-                    movingLeft = False
-                    lastMoveSidewaysTime = time.time()
+                elif (event.key == keys.K_RIGHT or event.key == keys.K_d) and is_valid_position(
+                          board, falling_piece, adj_x=1):
+                    falling_piece['x'] += 1
+                    moving_right = True
+                    moving_left = False
+                    last_lateral_time = time.time()
 
-                # rotating the block (if there is room to rotate)
-                elif (event.key == K_UP or event.key == K_w):
-                    fallingPiece['rotation'] = (fallingPiece['rotation'] + 1) % len(SHAPES[fallingPiece['shape']])
-                    if not isValidPosition(board, fallingPiece):
-                        fallingPiece['rotation'] = (fallingPiece['rotation'] - 1) % len(SHAPES[fallingPiece['shape']])
-                elif (event.key == K_q): # rotate the other direction
-                    fallingPiece['rotation'] = (fallingPiece['rotation'] - 1) % len(SHAPES[fallingPiece['shape']])
-                    if not isValidPosition(board, fallingPiece):
-                        fallingPiece['rotation'] = (fallingPiece['rotation'] + 1) % len(SHAPES[fallingPiece['shape']])
+                # rotating the piece (if there is room to rotate)
+                elif (event.key == keys.K_UP or event.key == keys.K_w):
+                    falling_piece[
+                        'rotation'] = (falling_piece['rotation'] + 1) % len(
+                            PIECES[falling_piece['shape']])
+                    if not is_valid_position(board, falling_piece):
+                        falling_piece[
+                            'rotation'] = (falling_piece['rotation'] - 1) % len(
+                                PIECES[falling_piece['shape']])
+                elif (event.key == keys.K_q):  # rotate the other direction
+                    falling_piece[
+                        'rotation'] = (falling_piece['rotation'] - 1) % len(
+                            PIECES[falling_piece['shape']])
+                    if not is_valid_position(board, falling_piece):
+                        falling_piece[
+                            'rotation'] = (falling_piece['rotation'] + 1) % len(
+                                PIECES[falling_piece['shape']])
 
-                # making the block fall faster with the down key
-                elif (event.key == K_DOWN or event.key == K_s):
-                    movingDown = True
-                    if isValidPosition(board, fallingPiece, adjY=1):
-                        fallingPiece['y'] += 1
-                    lastMoveDownTime = time.time()
+                # making the piece fall faster with the down key
+                elif (event.key == keys.K_DOWN or event.key == keys.K_s):
+                    moving_down = True
+                    if is_valid_position(board, falling_piece, adj_y=1):
+                        falling_piece['y'] += 1
+                    last_move_down_time = time.time()
 
-                # move the current block all the way down
-                elif event.key == K_SPACE:
-                    movingDown = False
-                    movingLeft = False
-                    movingRight = False
+                # move the current piece all the way down
+                elif event.key == keys.K_SPACE:
+                    moving_down = False
+                    moving_left = False
+                    moving_right = False
                     for i in range(1, BOARDHEIGHT):
-                        if not isValidPosition(board, fallingPiece, adjY=i):
+                        if not is_valid_position(board, falling_piece, adj_y=i):
                             break
-                    fallingPiece['y'] += i - 1
+                    falling_piece['y'] += i - 1
 
-        # handle moving the block because of user input
-        if (movingLeft or movingRight) and time.time() - lastMoveSidewaysTime > MOVESIDEWAYSFREQ:
-            if movingLeft and isValidPosition(board, fallingPiece, adjX=-1):
-                fallingPiece['x'] -= 1
-            elif movingRight and isValidPosition(board, fallingPiece, adjX=1):
-                fallingPiece['x'] += 1
-            lastMoveSidewaysTime = time.time()
+        # handle moving the piece because of user input
+        if (moving_left or moving_right) and time.time() - last_lateral_time > MOVESIDEWAYSFREQ:
+            if moving_left and is_valid_position(board, falling_piece, adj_x=-1):
+                falling_piece['x'] -= 1
+            elif moving_right and is_valid_position(board, falling_piece, adj_x=1):
+                falling_piece['x'] += 1
+            last_lateral_time = time.time()
 
-        if movingDown and time.time() - lastMoveDownTime > MOVEDOWNFREQ and isValidPosition(board, fallingPiece, adjY=1):
-            fallingPiece['y'] += 1
-            lastMoveDownTime = time.time()
+        if moving_down and time.time(
+        ) - last_move_down_time > MOVEDOWNFREQ and is_valid_position(
+                board, falling_piece, adj_y=1):
+            falling_piece['y'] += 1
+            last_move_down_time = time.time()
 
         # let the piece fall if it is time to fall
-        if time.time() - lastFallTime > fallFreq:
+        if time.time() - last_fall_time > fall_freq:
             # see if the piece has landed
-            if not isValidPosition(board, fallingPiece, adjY=1):
+            if not is_valid_position(board, falling_piece, adj_y=1):
                 # falling piece has landed, set it on the board
-                addToBoard(board, fallingPiece)
-                score += removeCompleteLines(board)
-                level, fallFreq = calculateLevelAndFallFreq(score)
-                fallingPiece = None
+                add_to_board(board, falling_piece)
+                lines, board = remove_complete_lines(board)
+                score += lines * lines
+                level, fall_freq = get_level_and_fall_freq(score)
+                falling_piece = None
             else:
-                # piece did not land, just move the block down
-                fallingPiece['y'] += 1
-                lastFallTime = time.time()
+                # piece did not land, just move the piece down
+                falling_piece['y'] += 1
+                last_fall_time = time.time()
 
         # drawing everything on the screen
         DISPLAYSURF.fill(BGCOLOR)
-        drawBoard(board)
-        drawStatus(score, level)
-        drawNextPiece(nextPiece)
-        if fallingPiece != None:
-            drawPiece(fallingPiece)
+        draw_board(board)
+        draw_status(score, level, current_move)
+        draw_next_piece(next_piece)
+        if falling_piece is not None:
+            draw_piece(falling_piece)
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
-        chromosome.high_score = score  # updates the high_score for the chromosome used to play the current game
+        chromosome.high_score = score
 
-def makeTextObjs(text, font, color):
+
+def make_text_objs(text, font, color):
     surf = font.render(text, True, color)
     return surf, surf.get_rect()
+
 
 def terminate():
     pygame.quit()
     sys.exit()
 
-def checkForKeyPress():
+
+def check_for_key_press():
     # Go through event queue looking for a KEYUP event.
     # Grab KEYDOWN events to remove them from the event queue.
-    checkForQuit()
+    check_for_quit()
 
-    for event in pygame.event.get([KEYDOWN, KEYUP]):
-        if event.type == KEYDOWN:
+    for event in pygame.event.get([keys.KEYDOWN, keys.KEYUP]):
+        if event.type == keys.KEYDOWN:
             continue
         return event.key
     return None
 
-def showTextScreen(text):
+
+def show_text_screen(text):
     # This function displays large text in the
     # center of the screen until a key is pressed.
     # Draw the text drop shadow
-    titleSurf, titleRect = makeTextObjs(text, BIGFONT, TEXTSHADOWCOLOR)
-    titleRect.center = (int(WINDOWWIDTH / 2), int(WINDOWHEIGHT / 2))
-    DISPLAYSURF.blit(titleSurf, titleRect)
+    title_surf, title_rect = make_text_objs(text, BIGFONT, TEXTSHADOWCOLOR)
+    title_rect.center = (int(WINDOWWIDTH / 2), int(WINDOWHEIGHT / 2))
+    DISPLAYSURF.blit(title_surf, title_rect)
 
     # Draw the text
-    titleSurf, titleRect = makeTextObjs(text, BIGFONT, TEXTCOLOR)
-    titleRect.center = (int(WINDOWWIDTH / 2) - 3, int(WINDOWHEIGHT / 2) - 3)
-    DISPLAYSURF.blit(titleSurf, titleRect)
+    title_surf, title_rect = make_text_objs(text, BIGFONT, TEXTCOLOR)
+    title_rect.center = (int(WINDOWWIDTH / 2) - 3, int(WINDOWHEIGHT / 2) - 3)
+    DISPLAYSURF.blit(title_surf, title_rect)
 
     # Draw the additional "Press a key to play." text.
-    pressKeySurf, pressKeyRect = makeTextObjs('Press a key to play.', BASICFONT, TEXTCOLOR)
-    pressKeyRect.center = (int(WINDOWWIDTH / 2), int(WINDOWHEIGHT / 2) + 100)
-    DISPLAYSURF.blit(pressKeySurf, pressKeyRect)
+    press_key_surf, press_key_rect = make_text_objs('Please wait to continue.',
+                                                    BASICFONT, TEXTCOLOR)
+    press_key_rect.center = (int(WINDOWWIDTH / 2), int(WINDOWHEIGHT / 2) + 100)
+    DISPLAYSURF.blit(press_key_surf, press_key_rect)
 
-    while checkForKeyPress() == None:
-        pygame.display.update()
-        FPSCLOCK.tick()
+    pygame.display.update()
+    FPSCLOCK.tick()
+    time.sleep(0.5)
 
-def checkForQuit():
-    for event in pygame.event.get(QUIT): # get all the QUIT events
-        terminate() # terminate if any QUIT events are present
-    for event in pygame.event.get(KEYUP): # get all the KEYUP events
-        if event.key == K_ESCAPE:
-            terminate() # terminate if the KEYUP event was for the Esc key
-        pygame.event.post(event) # put the other KEYUP event objects back
 
-def calculateLevelAndFallFreq(score):
+def check_for_quit():
+    for event in pygame.event.get(keys.QUIT):  # get all the QUIT events
+        terminate()  # terminate if any QUIT events are present
+    for event in pygame.event.get(keys.KEYUP):  # get all the KEYUP events
+        if event.key == keys.K_ESCAPE:
+            terminate()  # terminate if the KEYUP event was for the Esc key
+        pygame.event.post(event)  # put the other KEYUP event objects back
+
+
+def get_level_and_fall_freq(score):
     # Based on the score, return the level the player is on and
     # how many seconds pass until a falling piece falls one space.
     level = int(score / 10) + 1
-    fallFreq = 0.27 - (level * 0.02)
-    return level, fallFreq
+    fall_freq = 0.07 * math.exp(
+        (1 - level) / 3)  # 0.27 - (level * 0.02) default
+    return level, fall_freq
 
-def getNewPiece():
+
+def get_new_piece():
     # return a random new piece in a random rotation and color
-    shape = random.choice(list(SHAPES.keys()))
-    newPiece = {'shape': shape,
-                'rotation': random.randint(0, len(SHAPES[shape]) - 1),
-                'x': int(BOARDWIDTH / 2) - int(TEMPLATEWIDTH / 2),
-                'y': -2, # start it above the board (i.e. less than 0)
-                'color': random.randint(0, len(COLORS)-1)}
-    return newPiece
+    shape = random.choice(list(PIECES.keys()))
+    new_piece = {
+        'shape': shape,
+        'rotation': random.randint(0,
+                                   len(PIECES[shape]) - 1),
+        'x': int(BOARDWIDTH / 2) - int(TEMPLATEWIDTH / 2),
+        'y': -2,  # start it above the board (i.e. less than 0)
+        'color': random.randint(1,
+                                len(COLORS) - 1)
+    }
+    return new_piece
 
-def addToBoard(board, piece):
+
+def add_to_board(board, piece):
     # fill in the board based on piece's location, shape, and rotation
     for x in range(TEMPLATEWIDTH):
         for y in range(TEMPLATEHEIGHT):
-            if SHAPES[piece['shape']][piece['rotation']][y][x] != BLANK:
+            if PIECES[piece['shape']][piece['rotation']][y][x] != BLANK and x + piece['x'] < 10 and y + piece['y'] < 20:
                 board[x + piece['x']][y + piece['y']] = piece['color']
+                # DEBUGGING NOTE: SOMETIMES THIS IF STATEMENT ISN'T
+                # SATISFIED, WHICH NORMALLY WOULD RAISE AN ERROR.
+                # NOT SURE WHAT CAUSES THE INDICES TO BE THAT HIGH.
+                # THIS IS A BAND-AID FIX
 
-def getBlankBoard():
+
+def get_blank_board():
     # create and return a new blank board data structure
     board = []
-    for i in range(BOARDWIDTH):
-        board.append([BLANK] * BOARDHEIGHT)
+    for _ in range(BOARDWIDTH):
+        board.append(['0'] * BOARDHEIGHT)
     return board
 
-def isOnBoard(x, y):
+
+def is_on_board(x, y):
     return x >= 0 and x < BOARDWIDTH and y < BOARDHEIGHT
 
-def isValidPosition(board, piece, adjX=0, adjY=0):
+
+def is_valid_position(board, piece, adj_x=0, adj_y=0):
     # Return True if the piece is within the board and not colliding
     for x in range(TEMPLATEWIDTH):
-        for y in range(TEMPLATEHEIGHT):
-            isAboveBoard = y + piece['y'] + adjY < 0
-            if isAboveBoard or SHAPES[piece['shape']][piece['rotation']][y][x] == BLANK:
+        for y in range(TEMPLATEHEIGHT - 1):
+            is_above_board = y + piece['y'] + adj_y < 0
+            if is_above_board or PIECES[piece['shape']][piece['rotation']][y][x] == BLANK:
                 continue
-            if not isOnBoard(x + piece['x'] + adjX, y + piece['y'] + adjY):
-                return False
-            if board[x + piece['x'] + adjX][y + piece['y'] + adjY] != BLANK:
-                return False
+            if not is_on_board(x + piece['x'] + adj_x, y + piece['y'] + adj_y):
+                return False  # The piece is off the board
+            if board[x + piece['x'] + adj_x][y + piece['y'] + adj_y] != BLANK:
+                return False  # The piece collides
     return True
 
-def isCompleteLine(board, y):
+
+def is_complete_line(board, y):
     # Return True if the line filled with boxes with no gaps.
     for x in range(BOARDWIDTH):
         if board[x][y] == BLANK:
             return False
     return True
 
-def removeCompleteLines(board):
+
+def remove_complete_lines(board):
     # Remove any completed lines on the board, move everything above them down, and return the number of complete lines.
-    numLinesRemoved = 0
-    y = BOARDHEIGHT - 1 # start y at the bottom of the board
+    lines_removed = 0
+    y = BOARDHEIGHT - 1  # start y at the bottom of the board
     while y >= 0:
-        if isCompleteLine(board, y):
+        if is_complete_line(board, y):
             # Remove the line and pull boxes down by one line.
-            for pullDownY in range(y, 0, -1):
+            for pull_down_y in range(y, 0, -1):
                 for x in range(BOARDWIDTH):
-                    board[x][pullDownY] = board[x][pullDownY-1]
+                    board[x][pull_down_y] = board[x][pull_down_y - 1]
             # Set very top line to blank.
             for x in range(BOARDWIDTH):
                 board[x][0] = BLANK
-            numLinesRemoved += 1
+            lines_removed += 1
             # Note on the next iteration of the loop, y is the same.
             # This is so that if the line that was pulled down is also
             # complete, it will be removed.
         else:
-            y -= 1 # move on to check next row up
-    return numLinesRemoved
+            y -= 1  # move on to check next row up
+    return lines_removed, board
 
-def convertToPixelCoords(boxx, boxy):
+
+def convert_to_pixel_coords(boxx, boxy):
     # Convert the given xy coordinates of the board to xy
     # coordinates of the location on the screen.
     return (XMARGIN + (boxx * BOXSIZE)), (TOPMARGIN + (boxy * BOXSIZE))
 
-def drawBox(boxx, boxy, color, pixelx=None, pixely=None):
+
+def draw_box(boxx, boxy, color, pixelx=None, pixely=None):
     # draw a single box (each tetromino piece has four boxes)
     # at xy coordinates on the board. Or, if pixelx & pixely
     # are specified, draw to the pixel coordinates stored in
     # pixelx & pixely (this is used for the "Next" piece).
     if color == BLANK:
         return
-    if pixelx == None and pixely == None:
-        pixelx, pixely = convertToPixelCoords(boxx, boxy)
-    pygame.draw.rect(DISPLAYSURF, COLORS[color], (pixelx + 1, pixely + 1, BOXSIZE - 1, BOXSIZE - 1))
-    pygame.draw.rect(DISPLAYSURF, LIGHTCOLORS[color], (pixelx + 1, pixely + 1, BOXSIZE - 4, BOXSIZE - 4))
+    if pixelx is None and pixely is None:
+        pixelx, pixely = convert_to_pixel_coords(boxx, boxy)
+    pygame.draw.rect(DISPLAYSURF, COLORS[color],
+                     (pixelx + 1, pixely + 1, BOXSIZE - 1, BOXSIZE - 1))
+    pygame.draw.rect(DISPLAYSURF, LIGHTCOLORS[color],
+                     (pixelx + 1, pixely + 1, BOXSIZE - 4, BOXSIZE - 4))
 
-def drawBoard(board):
+
+def draw_board(board):
     # draw the border around the board
-    pygame.draw.rect(DISPLAYSURF, BORDERCOLOR, (XMARGIN - 3, TOPMARGIN - 7, (BOARDWIDTH * BOXSIZE) + 8, (BOARDHEIGHT * BOXSIZE) + 8), 5)
+    pygame.draw.rect(DISPLAYSURF, BORDERCOLOR,
+                     (XMARGIN - 3, TOPMARGIN - 7, (BOARDWIDTH * BOXSIZE) + 8,
+                      (BOARDHEIGHT * BOXSIZE) + 8), 5)
 
     # fill the background of the board
-    pygame.draw.rect(DISPLAYSURF, BGCOLOR, (XMARGIN, TOPMARGIN, BOXSIZE * BOARDWIDTH, BOXSIZE * BOARDHEIGHT))
-
+    pygame.draw.rect(
+        DISPLAYSURF, BGCOLOR,
+        (XMARGIN, TOPMARGIN, BOXSIZE * BOARDWIDTH, BOXSIZE * BOARDHEIGHT))
     # draw the individual boxes on the board
     for x in range(BOARDWIDTH):
         for y in range(BOARDHEIGHT):
-            drawBox(x, y, board[x][y])
+            draw_box(x, y, board[x][y])
 
-def drawStatus(score, level):
+
+def draw_status(score, level, best_move):
     # draw the score text
-    scoreSurf = BASICFONT.render('Score: %s' % score, True, TEXTCOLOR)
-    scoreRect = scoreSurf.get_rect()
-    scoreRect.topleft = (WINDOWWIDTH - 150, 20)
-    DISPLAYSURF.blit(scoreSurf, scoreRect)
+    score_surf = BASICFONT.render('Score: %s' % score, True, TEXTCOLOR)
+    score_rect = score_surf.get_rect()
+    score_rect.topleft = (WINDOWWIDTH - 150, 20)
+    DISPLAYSURF.blit(score_surf, score_rect)
 
     # draw the level text
-    levelSurf = BASICFONT.render('Level: %s' % level, True, TEXTCOLOR)
-    levelRect = levelSurf.get_rect()
-    levelRect.topleft = (WINDOWWIDTH - 150, 50)
-    DISPLAYSURF.blit(levelSurf, levelRect)
+    level_surf = BASICFONT.render('Level: %s' % level, True, TEXTCOLOR)
+    level_rect = level_surf.get_rect()
+    level_rect.topleft = (WINDOWWIDTH - 150, 50)
+    DISPLAYSURF.blit(level_surf, level_rect)
 
-def drawPiece(piece, pixelx=None, pixely=None):
-    shapeToDraw = SHAPES[piece['shape']][piece['rotation']]
-    if pixelx == None and pixely == None:
+    # draw the best_move text
+    move_surf = BASICFONT.render('Current Move: %s' % best_move, True, TEXTCOLOR)
+    move_rect = move_surf.get_rect()
+    move_rect.topleft = (WINDOWWIDTH - 200, 110)
+    DISPLAYSURF.blit(move_surf, move_rect)
+
+    # draw generation info
+    generation_surf = BASICFONT.render('Generation: %d' % GENERATION_NUMBER, True, TEXTCOLOR)
+    generation_rect = generation_surf.get_rect()
+    generation_rect.topleft = (WINDOWWIDTH - 200, 250)
+    DISPLAYSURF.blit(generation_surf, generation_rect)
+
+    if BEST_CHROMOSOME_IN_GENERATION == None:
+        return
+    else:
+        # draw chromosome attribute a
+        a_surf = BASICFONT.render('a  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[0],3), True, TEXTCOLOR)
+        a_rect = a_surf.get_rect()
+        a_rect.topleft = (WINDOWWIDTH - 200, 290)
+        DISPLAYSURF.blit(a_surf, a_rect)
+
+        # draw chromosome attribute b
+        b_surf = BASICFONT.render('b  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[1],3), True, TEXTCOLOR)
+        b_rect = b_surf.get_rect()
+        b_rect.topleft = (WINDOWWIDTH - 200, 310  )
+        DISPLAYSURF.blit(b_surf, b_rect)
+
+        # draw chromosome attribute c
+        c_surf = BASICFONT.render('c  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[2],3), True, TEXTCOLOR)
+        c_rect = c_surf.get_rect()
+        c_rect.topleft = (WINDOWWIDTH - 200, 330)
+        DISPLAYSURF.blit(c_surf, c_rect)
+
+        # draw chromosome high score
+        high_score_surf = BASICFONT.render('High score = %d' % BEST_CHROMOSOME_IN_GENERATION.high_score, True, TEXTCOLOR)
+        high_score_rect = high_score_surf.get_rect()
+        high_score_rect.topleft = (WINDOWWIDTH - 200, 370)
+        DISPLAYSURF.blit(high_score_surf, high_score_rect)
+
+
+def draw_piece(piece, pixelx=None, pixely=None):
+    shape_to_draw = PIECES[piece['shape']][piece['rotation']]
+    if pixelx is None and pixely is None:
         # if pixelx & pixely hasn't been specified, use the location stored in the piece data structure
-        pixelx, pixely = convertToPixelCoords(piece['x'], piece['y'])
+        pixelx, pixely = convert_to_pixel_coords(piece['x'], piece['y'])
 
-    # draw each of the blocks that make up the piece
+    # draw each of the boxes that make up the piece
     for x in range(TEMPLATEWIDTH):
         for y in range(TEMPLATEHEIGHT):
-            if shapeToDraw[y][x] != BLANK:
-                drawBox(None, None, piece['color'], pixelx + (x * BOXSIZE), pixely + (y * BOXSIZE))
+            if shape_to_draw[y][x] != BLANK:
+                draw_box(None, None, piece['color'], pixelx + (x * BOXSIZE), pixely + (y * BOXSIZE))
 
-def drawNextPiece(piece):
+
+def draw_next_piece(piece):
     # draw the "next" text
-    nextSurf = BASICFONT.render('Next:', True, TEXTCOLOR)
-    nextRect = nextSurf.get_rect()
-    nextRect.topleft = (WINDOWWIDTH - 120, 80)
-    DISPLAYSURF.blit(nextSurf, nextRect)
+    next_surf = BASICFONT.render('Next:', True, TEXTCOLOR)
+    next_rect = next_surf.get_rect()
+    next_rect.topleft = (WINDOWWIDTH - 120, 80)
+    DISPLAYSURF.blit(next_surf, next_rect)
     # draw the "next" piece
-    drawPiece(piece, pixelx=WINDOWWIDTH-120, pixely=100)
+    draw_piece(piece, pixelx=WINDOWWIDTH - 155, pixely=140)
 
 
 # region Genetic algorithm
 class Chromosome:
-    attributes = []
-    high_score = 0
 
-    def __init__(self, size):
+    def __init__(self):
+        self.high_score = 0
+        self.attributes = [0] * CHROMOSOME_SIZE
 
-        for i in range(size):
-            self.attributes.append(random.uniform(-10.0, 10.0))
+        for i in range(CHROMOSOME_SIZE):
+            self.attributes[i] = (random.uniform(-10.0, 10.0))
 
 
 def create_population():
     population = []
 
     for i in range(POPULATION_SIZE):
-        population.append(Chromosome(CHROMOSOME_SIZE))
+        population.append(Chromosome())
 
     return population
 
@@ -494,11 +547,12 @@ def create_population():
 def crossover(population):
     offspring = []
 
-    while len(population) != 0:
-        parent1 = population.pop[random.randrange(len(population))]
-        parent2 = population.pop[random.randrange(len(population))]
+    shuffle(population)  # Shuffles the population in order to pair parents randomly
+    while len(population) != 0:  # TODO: this line requires the population to be a power of 2
+        parent1 = population.pop()
+        parent2 = population.pop()
 
-        child = Chromosome(CHROMOSOME_SIZE)
+        child = Chromosome()
 
         for i in range(CHROMOSOME_SIZE):
             if random.randint(1, 100) > MUTATION:
@@ -518,9 +572,10 @@ def selection(population):
     copied_population = copy.copy(population)
     strongest_chromosomes = []
 
-    while len(population) != 0:
-        x = population.pop[random.randrange(len(population))]
-        y = population.pop[random.randrange(len(population))]
+    shuffle(population)
+    for _ in range(int(len(population)/2)):  # Pairs up the population, except the last one if population/2 is odd
+        x = population.pop()
+        y = population.pop()
 
         if x.high_score > y.high_score:
             strongest_chromosomes.append(x)
@@ -531,15 +586,54 @@ def selection(population):
 
     copied_population.sort(key=operator.attrgetter('high_score'))
 
-    for i in range(population / 4):  # pops 1/4 lowest scoring chromosomes
-        copied_population.pop(i)
+    while len(offspring) != POPULATION_SIZE:
+        chromosome = copied_population.pop()
+        offspring.append(chromosome)
 
-    for i in range(offspring):
-        copied_population.append(offspring[i])
-
-    return copied_population
+    assert len(offspring) == POPULATION_SIZE
+    return offspring
 # endregion
 
+
+# region Board state methods
+def get_aggregate_height(board):
+    # Calculate the aggregate height of the board, by taking the
+    # difference in height between each pair of columns (e.g diff between column 1 and 2)
+
+    heights = [0]*BOARDWIDTH
+    aggregate_height = 0
+
+    for i in range(0, BOARDWIDTH):  # Selects a column
+        for j in range(0, BOARDHEIGHT):  # Goes down from the top of the selected column
+            if int(board[i][j]) > 0:
+                heights[i] = BOARDHEIGHT - j  # Stores the height of the given column
+                break  # breaks to find the height of the next column
+
+    for i in range(BOARDWIDTH - 1):
+        highest = max(heights[i], heights[i + 1])
+        lowest = min(heights[i], heights[i + 1])
+        aggregate_height += highest - lowest
+
+    return aggregate_height
+
+
+def get_number_of_holes(board):
+    # Calculates the number of holes on the board
+    holes = 0
+
+    for i in range(0, BOARDWIDTH):
+        filled = False  # Set to True if the current square is occupied by a piece
+        for j in range(0, BOARDHEIGHT):
+            if int(board[i][j]) > 0 and not filled:
+                filled = True
+            if int(board[i][j]) == 0 and filled:  # If current square is empty and an square above it is filled
+                holes += 1
+
+    return holes
+# endregion
+
+
+# region Remaining methods
 def get_expected_score(test_board, completed_lines, chromosome):
     # Calculates the score of a given board state given the attributes of the chromosome
     aggregate_height = get_aggregate_height(test_board)
@@ -590,9 +684,10 @@ def find_best_move(board, piece, chromosome):
             test_board = simulate_board(test_board, test_piece, move)
             if test_board is not None:
                 moves.append(move)
-                scores.append(get_expected_score(test_board[0], chromosome))
-            highest_score = max(scores)
-            best_move = moves[scores.index(highest_score)]
+                scores.append(get_expected_score(test_board[0], test_board[1], chromosome))
+
+    highest_score = max(scores)
+    best_move = moves[scores.index(highest_score)]
 
     return best_move
 
@@ -614,6 +709,56 @@ def make_move(move):
             sideways -= 1
 
     return [rot, sideways]
+# endregion
+
+
+def create_log_file():
+    # Opens file to read the number of this log
+    file_log_number = open("LogNumber.txt", "r")
+    number = int(file_log_number.read())
+    file_log_number.close()
+
+    # Updates the number for the next log
+    file_log_number = open("LogNumber.txt", "w")
+    file_log_number.write(str(number + 1))
+    file_log_number.close()
+
+    # Creates the new log
+    new_file_name = "Log" + str(number)
+    log = open(new_file_name, "w+")
+
+    log.write("Date: " + str(datetime.datetime.now()) + "\n")
+    log.write("Prototype: 1\n")
+    log.write("Population: " + str(POPULATION_SIZE) + "\n")
+    log.write("Chromosome size: " + str(CHROMOSOME_SIZE) + "\n")
+    log.write("Mutation: " + str(MUTATION) + "\n\n")
+
+    log.close()
+
+    return number
+
+# Writes game data to a log file
+def write_generation_to_log(Chromosome, log_number):
+
+    log = open("Log" + str(log_number), "a")
+
+    log.write("Generation: " + str(GENERATION_NUMBER) + "\n")
+    log.write("a = " + str(Chromosome.attributes[0]) + "\n")
+    log.write("b = " + str(Chromosome.attributes[1]) + "\n")
+    log.write("c = " + str(Chromosome.attributes[2]) + "\n")
+    log.write("High score = " + str(Chromosome.high_score) + "\n\n")
+
+    log.close()
+
+
+def get_best_chromosome(population):
+    best_chromosome = population[0]
+
+    for i in range(1, len(population)):
+        if population[i].high_score > best_chromosome.high_score:
+            best_chromosome = population[i]
+
+    return best_chromosome
 
 
 if __name__ == '__main__':
@@ -625,13 +770,28 @@ if __name__ == '__main__':
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
     pygame.display.set_caption('Tetromino')
 
-    showTextScreen('Tetromino')
+    show_text_screen('Tetromino')
 
     population = create_population()
 
+    log_number = create_log_file()
     while True:  # game loop
-        for i in range(len(population)):
-            runGame(population[i])
-            showTextScreen('Game Over')
+        for i in range(0, len(population)):
+            run_game(population[i])
+            show_text_screen('Game Over')
 
-        selection(population)
+        BEST_CHROMOSOME_IN_GENERATION = get_best_chromosome(population)
+        write_generation_to_log(BEST_CHROMOSOME_IN_GENERATION, log_number)
+        GENERATION_NUMBER += 1
+
+        population = selection(population)
+
+
+
+
+
+
+
+
+
+
