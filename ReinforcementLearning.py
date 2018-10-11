@@ -45,7 +45,7 @@ def make_move(current_move):
     return [rotation, lateral]
 
 
-def get_parameters(test_board):
+def get_parameters(board):
     # Returns number of holes, sum of heights, difference between tallest, shortest column and max height
     heights = [0] * tet.BOARDWIDTH
     holes = 0
@@ -54,7 +54,7 @@ def get_parameters(test_board):
     # Starts at the top of a column and moves down until an occupied block is found.
     for i in range(0, tet.BOARDWIDTH):
         for j in range(0, tet.BOARDHEIGHT):
-            if int(test_board[i][j]) > 0:  # If the cell is occupied the height is stored
+            if int(board[i][j]) > 0:  # If the cell is occupied the height is stored
                 heights[i] = tet.BOARDHEIGHT - j
                 break
 
@@ -65,9 +65,9 @@ def get_parameters(test_board):
     for i in range(0, tet.BOARDWIDTH):
         occupied = 0  # For every column occupied is set to 0.
         for j in range(0, tet.BOARDHEIGHT):
-            if int(test_board[i][j] > 0):  # If the column is occupied, occupied is set to 1
+            if int(board[i][j] > 0):  # If the column is occupied, occupied is set to 1
                 occupied = 1
-            if int(test_board[i][j]) == 0 and occupied == 1:    # If occupied is 1 and there is a hole,
+            if int(board[i][j]) == 0 and occupied == 1:    # If occupied is 1 and there is a hole,
                                                                 # increment holes by 1
                 holes += 1
 
@@ -92,7 +92,7 @@ def simulate_board(test_board, test_piece, move):
 
     # Rotate the test piece to match the specified move
     for i in range(0, rot):
-        test_piece['rotation'] = (test_piece['rotation'] + 1) % len(tet.PIECES[test_piece['shape']])
+        test_piece['rotation'] = (test_piece['rotation'] + 1) % len(tet.SHAPES[test_piece['shape']])
 
     # Tests is the position is valid, if not return none
     if not tet.isValidPosition(test_board, test_piece, adjX=lateral):
@@ -124,11 +124,10 @@ def get_expected_score(test_board, weights):
     D = weights[3]
     return float(A * height_sum + B * diff_heights + C * max_height + D * holes)
 
-
 def find_best_move(board, piece, weights, explore_change):
     move_list = []
     score_list = []
-    for rot in range(0, len(tet.PIECES[piece['shape']])):
+    for rot in range(0, len(tet.SHAPES[piece['shape']])):
         for lateral in range(-5, 6):
             move = [rot, lateral]
             test_board = copy.deepcopy(board)
@@ -146,3 +145,13 @@ def find_best_move(board, piece, weights, explore_change):
     else:
         return best_move
 
+
+# def do_shit(board, piece, weights, explore_change):
+#     move = find_best_move(board, piece, weights, explore_change)
+#     old_params = get_parameters(board)
+#     test_board = copy.deepcopy(board)
+#     test_piece = copy.deepcopy(piece)
+#     test_board = simulate_board(test_board, test_piece, move)
+#
+#     if test_board is not None:
+#         new_params

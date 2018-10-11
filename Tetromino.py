@@ -44,107 +44,30 @@ TEMPLATEWIDTH = 5
 TEMPLATEHEIGHT = 5
 #endregionx
 #region shapes
-S_SHAPE_TEMPLATE = [['.....',
-                     '.....',
-                     '..OO.',
-                     '.OO..',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..OO.',
-                     '...O.',
-                     '.....']]
+S_SHAPE_TEMPLATE = [['00000', '00000', '00110', '01100', '00000'],
+                    ['00000', '00100', '00110', '00010', '00000']]
 
-Z_SHAPE_TEMPLATE = [['.....',
-                     '.....',
-                     '.OO..',
-                     '..OO.',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '.OO..',
-                     '.O...',
-                     '.....']]
+Z_SHAPE_TEMPLATE = [['00000', '00000', '01100', '00110', '00000'],
+                    ['00000', '00100', '01100', '01000', '00000']]
 
-I_SHAPE_TEMPLATE = [['..O..',
-                     '..O..',
-                     '..O..',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     'OOOO.',
-                     '.....',
-                     '.....']]
+I_SHAPE_TEMPLATE = [['00100', '00100', '00100', '00100', '00000'],
+                    ['00000', '00000', '11110', '00000', '00000']]
 
-O_SHAPE_TEMPLATE = [['.....',
-                     '.....',
-                     '.OO..',
-                     '.OO..',
-                     '.....']]
+O_SHAPE_TEMPLATE = [['00000', '00000', '01100', '01100', '00000']]
 
-J_SHAPE_TEMPLATE = [['.....',
-                     '.O...',
-                     '.OOO.',
-                     '.....',
-                     '.....'],
-                    ['.....',
-                     '..OO.',
-                     '..O..',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     '.OOO.',
-                     '...O.',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..O..',
-                     '.OO..',
-                     '.....']]
+J_SHAPE_TEMPLATE = [['00000', '01000', '01110', '00000',
+                     '00000'], ['00000', '00110', '00100', '00100', '00000'],
+                    ['00000', '00000', '01110', '00010',
+                     '00000'], ['00000', '00100', '00100', '01100', '00000']]
+L_SHAPE_TEMPLATE = [['00000', '00010', '01110', '00000',
+                     '00000'], ['00000', '00100', '00100', '00110', '00000'],
+                    ['00000', '00000', '01110', '01000',
+                     '00000'], ['00000', '01100', '00100', '00100', '00000']]
 
-L_SHAPE_TEMPLATE = [['.....',
-                     '...O.',
-                     '.OOO.',
-                     '.....',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..O..',
-                     '..OO.',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     '.OOO.',
-                     '.O...',
-                     '.....'],
-                    ['.....',
-                     '.OO..',
-                     '..O..',
-                     '..O..',
-                     '.....']]
-
-T_SHAPE_TEMPLATE = [['.....',
-                     '..O..',
-                     '.OOO.',
-                     '.....',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '..OO.',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '.....',
-                     '.OOO.',
-                     '..O..',
-                     '.....'],
-                    ['.....',
-                     '..O..',
-                     '.OO..',
-                     '..O..',
-                     '.....']]
+T_SHAPE_TEMPLATE = [['00000', '00100', '01110', '00000',
+                     '00000'], ['00000', '00100', '00110', '00100', '00000'],
+                    ['00000', '00000', '01110', '00100',
+                     '00000'], ['00000', '00100', '01100', '00100', '00000']]
 
 SHAPES = {'S': S_SHAPE_TEMPLATE,
           'Z': Z_SHAPE_TEMPLATE,
@@ -156,7 +79,7 @@ SHAPES = {'S': S_SHAPE_TEMPLATE,
 #endregion
 
 
-def main(weights, explore_change):
+def main():
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
@@ -167,7 +90,7 @@ def main(weights, explore_change):
 
     showTextScreen('Tetromino')
     while True: # game loop
-        runGame(weights, explore_change)
+        runGame(rl.weights, rl.explore_change)
         #pygame.mixer.music.stop()
         showTextScreen('Game Over')
 
@@ -184,6 +107,7 @@ def runGame(weights, explore_change):
     level, fallFreq = calculateLevelAndFallFreq(rl.score)
     fallingPiece = getNewPiece()
     nextPiece = getNewPiece()
+    current_move = [0, 0]
 
     while True: # main game loop
         if fallingPiece == None:
@@ -193,18 +117,19 @@ def runGame(weights, explore_change):
             lastFallTime = time.time() # reset lastFallTime
 
             if not isValidPosition(board, fallingPiece):
-                return # can't fit a new piece on the board, so game over TODO: game over, update/return what we need
-
+                return # can't fit a new piece on the board, so game over
+            current_move = rl.find_best_move(board, fallingPiece, rl.weights, rl.explore_change)
 
         checkForQuit()
-        for event in pygame.event.get(): # event handling loop
+        current_move = rl.make_move(current_move)
+        for event in pygame.event.get():  # event handling loop
             if event.type == KEYUP:
                 if (event.key == K_p):
                     # Pausing the game
                     DISPLAYSURF.fill(BGCOLOR)
-                    #pygame.mixer.music.stop()
+                    # pygame.mixer.music.stop()
                     showTextScreen('Paused') # pause until a key press
-                    #pygame.mixer.music.play(-1, 0.0)
+                    # pygame.mixer.music.play(-1, 0.0)
                     lastFallTime = time.time()
                     lastMoveDownTime = time.time()
                     lastMoveSidewaysTime = time.time()
@@ -374,7 +299,7 @@ def getBlankBoard():
     # create and return a new blank board data structure
     board = []
     for i in range(BOARDWIDTH):
-        board.append([BLANK] * BOARDHEIGHT)
+        board.append(['0'] * BOARDHEIGHT)
     return board
 
 def isOnBoard(x, y):
@@ -485,4 +410,4 @@ def drawNextPiece(piece):
     drawPiece(piece, pixelx=WINDOWWIDTH-120, pixely=100)
 
 if __name__ == '__main__':
-    main(rl.weights, rl.explore_change)
+    main()
