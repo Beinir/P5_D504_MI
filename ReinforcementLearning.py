@@ -38,10 +38,10 @@ def make_move(current_move):
             gui.press('space')
         elif lateral < 0:
             gui.press('left')
-            lateral -= 1
+            lateral += 1
         elif lateral > 0:
             gui.press('right')
-            lateral += 1
+            lateral -= 1
 
     return [rotation, lateral]
 
