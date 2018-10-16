@@ -202,7 +202,7 @@ def runGame(weights, explore_change):
                 # falling piece has landed, set it on the board
                 add_to_board(board, fallingPiece)
                 lines, board = remove_complete_lines(board)
-                rl.score = lines * lines
+                rl.score += lines * lines
                 level, fallFreq = get_level_and_fall_freq(rl.score)
                 fallingPiece = None
             else:
