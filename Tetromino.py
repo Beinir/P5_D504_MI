@@ -19,9 +19,10 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 64   # TODO: Currently need to be a power of two - fix this in crossover loop
+POPULATION_SIZE = 4   # TODO: Currently need to be a power of two - fix this in crossover loop
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
+CURRENT_CHROMOSOME = 1
 
 # Define settings and constants
 pyautogui.PAUSE = 0.03
@@ -150,7 +151,7 @@ def run_game(chromosome):
             if not is_valid_position(board, falling_piece):
                 return
 
-            current_move = find_best_move(board, falling_piece, chromosome)
+            current_move = find_best_move(board, falling_piece, next_piece, chromosome)
 
         check_for_quit()
         current_move = make_move(current_move)
@@ -473,31 +474,42 @@ def draw_status(score, level, best_move):
     generation_rect.topleft = (WINDOWWIDTH - 200, 250)
     DISPLAYSURF.blit(generation_surf, generation_rect)
 
+    chromosome_surf = BASICFONT.render('Chromosome: %d' % CURRENT_CHROMOSOME, True, TEXTCOLOR)
+    chromosome_rect = chromosome_surf.get_rect()
+    chromosome_rect.topleft = (WINDOWWIDTH - 200, 270)
+    DISPLAYSURF.blit(chromosome_surf, chromosome_rect)
+
     if BEST_CHROMOSOME_IN_GENERATION == None:
         return
     else:
+        # draw best chromosome title
+        best_surf = BASICFONT.render('Best chromosome', True, TEXTCOLOR)
+        best_rect = best_surf.get_rect()
+        best_rect.topleft = (WINDOWWIDTH - 200, 330)
+        DISPLAYSURF.blit(best_surf, best_rect)
+
         # draw chromosome attribute a
         a_surf = BASICFONT.render('a  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[0],3), True, TEXTCOLOR)
         a_rect = a_surf.get_rect()
-        a_rect.topleft = (WINDOWWIDTH - 200, 290)
+        a_rect.topleft = (WINDOWWIDTH - 200, 350)
         DISPLAYSURF.blit(a_surf, a_rect)
 
         # draw chromosome attribute b
         b_surf = BASICFONT.render('b  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[1],3), True, TEXTCOLOR)
         b_rect = b_surf.get_rect()
-        b_rect.topleft = (WINDOWWIDTH - 200, 310  )
+        b_rect.topleft = (WINDOWWIDTH - 200, 370)
         DISPLAYSURF.blit(b_surf, b_rect)
 
         # draw chromosome attribute c
         c_surf = BASICFONT.render('c  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[2],3), True, TEXTCOLOR)
         c_rect = c_surf.get_rect()
-        c_rect.topleft = (WINDOWWIDTH - 200, 330)
+        c_rect.topleft = (WINDOWWIDTH - 200, 390)
         DISPLAYSURF.blit(c_surf, c_rect)
 
         # draw chromosome high score
         high_score_surf = BASICFONT.render('High score = %d' % BEST_CHROMOSOME_IN_GENERATION.high_score, True, TEXTCOLOR)
         high_score_rect = high_score_surf.get_rect()
-        high_score_rect.topleft = (WINDOWWIDTH - 200, 370)
+        high_score_rect.topleft = (WINDOWWIDTH - 200, 410)
         DISPLAYSURF.blit(high_score_surf, high_score_rect)
 
 
@@ -672,24 +684,44 @@ def simulate_board(test_board, test_piece, move):
     return test_board, completed_lines
 
 
-def find_best_move(board, piece, chromosome):
+def find_best_move(board, piece, next_piece, chromosome):
     moves = []
     scores = []
 
     for rot in range(0, len(PIECES[piece['shape']])):  # TODO: How does this work?
         for sideways in range(-5, 6):  # TODO: Why this range?
-            move = [rot, sideways]  # TODO: change array to tuple?
+            move = [rot, sideways]
             test_board = copy.deepcopy(board)
             test_piece = copy.deepcopy(piece)
             test_board = simulate_board(test_board, test_piece, move)
             if test_board is not None:
                 moves.append(move)
-                scores.append(get_expected_score(test_board[0], test_board[1], chromosome))
+                current_piece_score = get_expected_score(test_board[0], test_board[1], chromosome)
+                next_piece_score = get_next_move_best_score(test_board[0], next_piece, chromosome)
+                scores.append(current_piece_score + next_piece_score)
 
     highest_score = max(scores)
     best_move = moves[scores.index(highest_score)]
 
+    print(highest_score)
+
     return best_move
+
+
+# Calculates the best score for the next piece, given a board where the current move have been made
+def get_next_move_best_score(board, piece, chromosome):
+    scores = []
+
+    for rot in range(0, len(PIECES[piece['shape']])):  # TODO: How does this work?
+        for sideways in range(-5, 6):
+            move = [rot, sideways]
+            test_board = copy.deepcopy(board)
+            test_piece = copy.deepcopy(piece)
+            test_board = simulate_board(test_board, test_piece, move)
+            if test_board is not None:
+                scores.append(get_expected_score(test_board[0], test_board[1], chromosome))
+
+    return max(scores)
 
 
 def make_move(move):
@@ -779,6 +811,7 @@ if __name__ == '__main__':
         for i in range(0, len(population)):
             run_game(population[i])
             show_text_screen('Game Over')
+            CURRENT_CHROMOSOME = i + 1
 
         BEST_CHROMOSOME_IN_GENERATION = get_best_chromosome(population)
         write_generation_to_log(BEST_CHROMOSOME_IN_GENERATION, log_number)

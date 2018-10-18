@@ -1,0 +1,24 @@
+Date: 2018-10-17 09:54:39.074413
+Prototype: 1
+Population: 4
+Chromosome size: 3
+Mutation: 5
+
+Generation: 1
+a = 1.1330383699642983
+b = -6.2545398972577075
+c = 9.52737760993302
+High score = 0
+
+Generation: 2
+a = 1.1330383699642983
+b = 3.5332148522754565
+c = 4.962496404574635
+High score = 0
+
+Generation: 3
+a = -3.0249077681033043
+b = 0.34523018263005767
+c = 3.2009329634206694
+High score = 0
+
