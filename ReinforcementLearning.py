@@ -5,9 +5,9 @@ import random
 import sys
 #region Constants
 discount_rate = 0.6
-learning_rate = 0.6
+learning_rate = 0.1
 
-explore_change = 0
+explore_change = 1.0
 max_explore_change = 1.0
 min_explore_change = 0.01
 decay_rate = 0.01
@@ -111,8 +111,8 @@ def simulate_board(test_board, test_piece, move):
         tet.add_to_board(test_board, test_piece)
         test_lines_removed, test_board = tet.remove_complete_lines(test_board)
 
-    height_sum, diff_sum, max_height, holes = get_parameters(test_board)
-    one_step_reward = 5 * (test_lines_removed * test_lines_removed) - (height_sum - reference_height)
+    height_sum, diff_heights, max_height, holes = get_parameters(test_board)
+    one_step_reward = 5 * (test_lines_removed * test_lines_removed) - holes
     return test_board, one_step_reward
 
 
@@ -153,7 +153,7 @@ def get_reward(board, weights, test_score):
     return (test_score * test_score) + weights[0] * params[0] + weights[1] * params[1] + weights[2] * params[2] + weights[3] * params[3]
 
 
-def do_shit(board, piece, weights, explore_change):
+def reinforcement_learning(board, piece, weights, explore_change):
     move = find_best_move(board, piece, weights, explore_change)
     old_params = get_parameters(board)
     test_board = copy.deepcopy(board)
@@ -164,6 +164,5 @@ def do_shit(board, piece, weights, explore_change):
         new_params = get_parameters(test_board[0])
         one_step_reward = test_board[1]
     for i in range(0, len(weights)):
-        weights[1] = weights[i] + learning_rate * \
-                     (one_step_reward - old_params[i] + discount_rate * new_params[i])
+        weights[i] = weights[i] + learning_rate * (one_step_reward - old_params[i] + discount_rate * new_params[i])
     return move, weights
