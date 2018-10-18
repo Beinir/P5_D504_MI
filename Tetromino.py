@@ -120,7 +120,12 @@ def runGame(weights, explore_change):
 
             if not is_valid_position(board, fallingPiece):
                 return # can't fit a new piece on the board, so game over
-            current_move = rl.find_best_move(board, fallingPiece, rl.weights, rl.explore_change)
+            current_move, weights = rl.do_shit(board, fallingPiece, rl.weights, rl.explore_change)
+
+            if explore_change > 0.001:
+                explore_change *= 0.99
+            else:
+                explore_change = 0
 
         check_for_quit()
         current_move = rl.make_move(current_move)

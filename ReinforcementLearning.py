@@ -4,7 +4,7 @@ import copy
 import random
 import sys
 #region Constants
-gamma = 0.6
+discount_rate = 0.6
 learning_rate = 0.6
 
 explore_change = 0
@@ -16,7 +16,7 @@ weights = [-1, -1, -1, -30]
 """
     weights list of four floats:
     * Sum of all column heights.
-    * Sum of absolute column differences.
+    * Absolute column difference.
     * Maximum height on the board.
     * Number of holes on the board.
 """
@@ -55,12 +55,10 @@ def get_parameters(board):
     # Starts at the top of a column and moves down until an occupied block is found.
     for i in range(0, tet.BOARDWIDTH):
         for j in range(0, tet.BOARDHEIGHT):
-            try:
-                if int(board[i][j]) > 0:  # If the cell is occupied the height is stored
-                    heights[i] = tet.BOARDHEIGHT - j
-                    break
-            except TypeError:
-                print(board)
+
+            if int(board[i][j]) > 0:  # If the cell is occupied the height is stored
+                heights[i] = tet.BOARDHEIGHT - j
+                break
 
     # Find the difference between the tallest and shortest columns
     diffs_heights = max(heights) - min(heights)
@@ -115,7 +113,7 @@ def simulate_board(test_board, test_piece, move):
 
     height_sum, diff_sum, max_height, holes = get_parameters(test_board)
     one_step_reward = 5 * (test_lines_removed * test_lines_removed) - (height_sum - reference_height)
-    return test_board#, one_step_reward
+    return test_board, one_step_reward
 
 
 def get_expected_score(test_board, weights):
@@ -134,12 +132,12 @@ def find_best_move(board, piece, weights, explore_change):
         for lateral in range(-5, 6):
             move = [rot, lateral]
             test_board = copy.deepcopy(board)
-            test_board2 = list(test_board)
+            #test_board2 = list(test_board)
             test_piece = copy.deepcopy(piece)
-            test_board3 = simulate_board(test_board2, test_piece, move)
-            if test_board3 is not None:
+            test_board = simulate_board(test_board, test_piece, move)
+            if test_board is not None:
                 move_list.append(move)
-                test_score = get_expected_score(test_board3, weights)
+                test_score = get_expected_score(test_board[0], weights)
                 score_list.append(test_score)
     best_score = max(score_list)
     best_move = move_list[score_list.index(best_score)]
@@ -150,12 +148,22 @@ def find_best_move(board, piece, weights, explore_change):
         return best_move
 
 
-# def do_shit(board, piece, weights, explore_change):
-#     move = find_best_move(board, piece, weights, explore_change)
-#     old_params = get_parameters(board)
-#     test_board = copy.deepcopy(board)
-#     test_piece = copy.deepcopy(piece)
-#     test_board = simulate_board(test_board, test_piece, move)
-#
-#     if test_board is not None:
-#         new_params
+def get_reward(board, weights, test_score):
+    params = get_parameters(board)
+    return (test_score * test_score) + weights[0] * params[0] + weights[1] * params[1] + weights[2] * params[2] + weights[3] * params[3]
+
+
+def do_shit(board, piece, weights, explore_change):
+    move = find_best_move(board, piece, weights, explore_change)
+    old_params = get_parameters(board)
+    test_board = copy.deepcopy(board)
+    test_piece = copy.deepcopy(piece)
+    test_board = simulate_board(test_board, test_piece, move)
+
+    if test_board is not None:
+        new_params = get_parameters(test_board[0])
+        one_step_reward = test_board[1]
+    for i in range(0, len(weights)):
+        weights[1] = weights[i] + learning_rate * \
+                     (one_step_reward - old_params[i] + discount_rate * new_params[i])
+    return move, weights
