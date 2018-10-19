@@ -7,9 +7,8 @@ import sys
 discount_rate = 0.6
 learning_rate = 0.1
 
-explore_change = 1.0
-max_explore_change = 1.0
-min_explore_change = 0.01
+explore_change = 1
+min_explore_change = 0.001
 decay_rate = 0.01
 
 weights = [-1, -1, -1, -30]
@@ -20,9 +19,10 @@ weights = [-1, -1, -1, -30]
     * Maximum height on the board.
     * Number of holes on the board.
 """
+
 score = 0
-optimal_move = [0, 0]  # [Rotation, Lateral movement]
-temp_move = [0, 0]  # [Rotation, Lateral movement]
+game_score_arr = []  # Array of tuples containing the game number and associated score
+game_num = 0
 #endregion
 
 
@@ -87,7 +87,6 @@ def simulate_board(test_board, test_piece, move):
     rot = move[0]
     sideways = move[1]
     test_lines_removed = 0
-    reference_height = get_parameters(test_board)[0]
     if test_piece is None:
         return None
 
@@ -113,7 +112,7 @@ def simulate_board(test_board, test_piece, move):
 
     height_sum, diff_heights, max_height, holes = get_parameters(test_board)
     one_step_reward = 5 * (test_lines_removed * test_lines_removed) - holes
-    return test_board, one_step_reward
+    return test_board#, one_step_reward
 
 
 def get_expected_score(test_board, weights):
@@ -132,12 +131,11 @@ def find_best_move(board, piece, weights, explore_change):
         for lateral in range(-5, 6):
             move = [rot, lateral]
             test_board = copy.deepcopy(board)
-            #test_board2 = list(test_board)
             test_piece = copy.deepcopy(piece)
             test_board = simulate_board(test_board, test_piece, move)
             if test_board is not None:
                 move_list.append(move)
-                test_score = get_expected_score(test_board[0], weights)
+                test_score = get_expected_score(test_board, weights)
                 score_list.append(test_score)
     best_score = max(score_list)
     best_move = move_list[score_list.index(best_score)]
@@ -148,21 +146,9 @@ def find_best_move(board, piece, weights, explore_change):
         return best_move
 
 
-def get_reward(board, weights, test_score):
+def reinforcement_learning(move, board, piece, weights):
     params = get_parameters(board)
-    return (test_score * test_score) + weights[0] * params[0] + weights[1] * params[1] + weights[2] * params[2] + weights[3] * params[3]
 
-
-def reinforcement_learning(board, piece, weights, explore_change):
-    move = find_best_move(board, piece, weights, explore_change)
-    old_params = get_parameters(board)
-    test_board = copy.deepcopy(board)
-    test_piece = copy.deepcopy(piece)
-    test_board = simulate_board(test_board, test_piece, move)
-
-    if test_board is not None:
-        new_params = get_parameters(test_board[0])
-        one_step_reward = test_board[1]
     for i in range(0, len(weights)):
-        weights[i] = weights[i] + learning_rate * (one_step_reward - old_params[i] + discount_rate * new_params[i])
-    return move, weights
+        weights[i] = weights[i] + learning_rate * (score + discount_rate * params[i])
+    return weights
