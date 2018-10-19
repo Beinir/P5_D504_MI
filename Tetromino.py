@@ -6,6 +6,7 @@ import random, time, pygame, sys
 from pygame.locals import *
 import ReinforcementLearning as rl
 import math
+import Log
 # region constants
 FPS = 25
 WINDOWWIDTH = 640
@@ -102,10 +103,9 @@ def runGame(weights, explore_change):
     lastMoveDownTime = time.time()
     lastMoveSidewaysTime = time.time()
     lastFallTime = time.time()
-    movingDown = False # note: there is no movingUp variable
+    movingDown = False  # note: there is no movingUp variable
     movingLeft = False
     movingRight = False
-    #score = 0
     level, fallFreq = get_level_and_fall_freq(rl.score)
     fallingPiece = get_new_piece()
     nextPiece = get_new_piece()
@@ -116,11 +116,21 @@ def runGame(weights, explore_change):
             # No falling piece in play, so start a new piece at the top
             fallingPiece = nextPiece
             nextPiece = get_new_piece()
-            lastFallTime = time.time() # reset lastFallTime
+            lastFallTime = time.time()  # reset lastFallTime
 
             if not is_valid_position(board, fallingPiece):
-                return # can't fit a new piece on the board, so game over
-            current_move = rl.find_best_move(board, fallingPiece, rl.weights, rl.explore_change)
+                rl.game_score_arr.append((rl.game_num, rl.score))
+                rl.weights = rl.reinforcement_learning(current_move, board, fallingPiece, weights)
+                rl.explore_change = explore_change
+                Log.create_and_append_log_file(rl.game_score_arr, explore_change, weights, rl.game_num)
+                rl.game_num += 1
+                return  # can't fit a new piece on the board, so game over
+            current_move = rl.find_best_move(board, fallingPiece, weights, explore_change)
+
+            if explore_change > rl.min_explore_change:
+                explore_change *= 0.99
+            else:
+                explore_change = 0
 
         check_for_quit()
         current_move = rl.make_move(current_move)
@@ -229,10 +239,6 @@ def make_text_objs(text, font, color):
 
 def terminate():
     pygame.quit()
-    log1 = open("log/RL_weights.txt", "w")
-    for element in rl.weights:
-        print(element, file=log1)
-    print(rl.score, file=log1)
     sys.exit()
 
 
