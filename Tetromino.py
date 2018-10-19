@@ -143,13 +143,16 @@ T_SHAPE_TEMPLATE = [['.....',
                      '..O..',
                      '.....']]
 
-SHAPES = {'S': S_SHAPE_TEMPLATE,
-          'Z': Z_SHAPE_TEMPLATE,
-          'J': J_SHAPE_TEMPLATE,
-          'L': L_SHAPE_TEMPLATE,
-          'I': I_SHAPE_TEMPLATE,
-          'O': O_SHAPE_TEMPLATE,
-          'T': T_SHAPE_TEMPLATE}
+# SHAPES = {'S': S_SHAPE_TEMPLATE,
+# #           'Z': Z_SHAPE_TEMPLATE,
+# #           'J': J_SHAPE_TEMPLATE,
+# #           'L': L_SHAPE_TEMPLATE,
+# #           'I': I_SHAPE_TEMPLATE,
+# #           'O': O_SHAPE_TEMPLATE,
+# #           'T': T_SHAPE_TEMPLATE}
+
+SHAPES = {'O': O_SHAPE_TEMPLATE,
+          'I': I_SHAPE_TEMPLATE}
 
 def main():
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
@@ -177,7 +180,7 @@ def runGame():
     movingRight = False
     score = 0
     level, fallFreq = calculateLevelAndFallFreq(score)
-    fallingPiece = None #getNewPiece()
+    fallingPiece = getNewPiece()
     nextPiece = getNewPiece()
     currentMove = 0
 
@@ -349,9 +352,9 @@ def calculateLevelAndFallFreq(score):
 
 def getNewPiece():
     # return a random new piece in a random rotation and color
-    shape = 'O' # random.choice(list(SHAPES.keys()))
+    shape = random.choice(list(SHAPES.keys()))
     newPiece = {'shape': shape,
-                'rotation': random.randint(0, len(SHAPES[shape]) - 1),
+                'rotation': 0, #random.randint(0, len(SHAPES[shape]) - 1),
                 'x': int(BOARDWIDTH / 2) - int(TEMPLATEWIDTH / 2),
                 'y': -2, # start it above the board (i.e. less than 0)
                 'color': random.randint(0, len(COLORS)-1)}
@@ -483,7 +486,10 @@ def decisionTree(board, fallingPiece):
     heights = getHeights(board)
 
     if fallingPiece['shape'] =='O':
-        move = findSameHeight(heights)
+        move = OMove(heights)
+        return move
+    if fallingPiece['shape'] == 'I':
+        move = IMove(heights)
         return move
 
 def getHeights(board):
@@ -511,13 +517,26 @@ def makeMove(move):
 
     return sideways
 
-def findSameHeight(heights):
+def OMove(heights):
+    xCord = -4
+    minHeight = heights[0]
+
+    for i in range(0, len(heights)-1):
+        if i == len(heights)-2:
+            return xCord
+        elif minHeight > heights[i+1] and heights[i+1] == heights[i+2]:
+            xCord = i - 3
+            minHeight = heights[i+1]
+
+    return xCord
+
+def IMove(heights):
     xCord = -5
     minHeight = heights[0]
 
     for i in range(0, len(heights)-1):
         if minHeight > heights[i+1]:
-            xCord = i - 3
+            xCord = i - 4
             minHeight = heights[i+1]
 
     return xCord
