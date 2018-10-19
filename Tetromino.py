@@ -4,6 +4,7 @@
 # Creative Commons BY-NC-SA 3.0 US
 import random, time, pygame, sys
 from pygame.locals import *
+import pyautogui
 
 FPS = 25
 WINDOWWIDTH = 640
@@ -158,12 +159,12 @@ def main():
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
     pygame.display.set_caption('Tetromino')
-
     showTextScreen('Tetromino')
     while True: # game loop
         runGame()
-        #pygame.mixer.music.stop()
+        pygame.mixer.music.stop()
         showTextScreen('Game Over')
+
 
 def runGame():
     # setup variables for the start of the game
@@ -176,8 +177,9 @@ def runGame():
     movingRight = False
     score = 0
     level, fallFreq = calculateLevelAndFallFreq(score)
-    fallingPiece = getNewPiece()
+    fallingPiece = None #getNewPiece()
     nextPiece = getNewPiece()
+    currentMove = 0
 
     while True: # main game loop
         if fallingPiece == None:
@@ -188,7 +190,10 @@ def runGame():
 
             if not isValidPosition(board, fallingPiece):
                 return # can't fit a new piece on the board, so game over
+            currentMove = decisionTree(board, fallingPiece)
+
         checkForQuit()
+        currentMove = makeMove(currentMove)
         for event in pygame.event.get(): # event handling loop
             if event.type == KEYUP:
                 if (event.key == K_p):
@@ -266,7 +271,8 @@ def runGame():
             if not isValidPosition(board, fallingPiece, adjY=1):
                 # falling piece has landed, set it on the board
                 addToBoard(board, fallingPiece)
-                score += removeCompleteLines(board)
+                lines = removeCompleteLines(board)
+                score += lines * lines
                 level, fallFreq = calculateLevelAndFallFreq(score)
                 fallingPiece = None
             else:
@@ -343,7 +349,7 @@ def calculateLevelAndFallFreq(score):
 
 def getNewPiece():
     # return a random new piece in a random rotation and color
-    shape = random.choice(list(SHAPES.keys()))
+    shape = 'O' # random.choice(list(SHAPES.keys()))
     newPiece = {'shape': shape,
                 'rotation': random.randint(0, len(SHAPES[shape]) - 1),
                 'x': int(BOARDWIDTH / 2) - int(TEMPLATEWIDTH / 2),
@@ -471,6 +477,50 @@ def drawNextPiece(piece):
     DISPLAYSURF.blit(nextSurf, nextRect)
     # draw the "next" piece
     drawPiece(piece, pixelx=WINDOWWIDTH-120, pixely=100)
+
+# DecisionTree udvidelser
+def decisionTree(board, fallingPiece):
+    heights = getHeights(board)
+
+    if fallingPiece['shape'] =='O':
+        move = findSameHeight(heights)
+        return move
+
+def getHeights(board):
+    heights = [0] * BOARDWIDTH
+
+    for i in range(0, BOARDWIDTH):
+        for j in range(0, BOARDHEIGHT):
+            if board[i][j] != '.':
+                heights[i] = BOARDHEIGHT - j
+                break
+
+    return heights
+
+def makeMove(move):
+    sideways = move
+
+    if sideways == 0:
+        pyautogui.press('space')
+    if sideways < 0:
+        pyautogui.press('left')
+        sideways += 1
+    if sideways > 0:
+        pyautogui.press('right')
+        sideways -= 1
+
+    return sideways
+
+def findSameHeight(heights):
+    xCord = -5
+    minHeight = heights[0]
+
+    for i in range(0, len(heights)-1):
+        if minHeight > heights[i+1]:
+            xCord = i - 3
+            minHeight = heights[i+1]
+
+    return xCord
 
 if __name__ == '__main__':
     main()
