@@ -1,4 +1,4 @@
-# Tetromino (a Tetris clone)
+   # Tetromino (a Tetris clone)
 # By Al Sweigart al@inventwithpython.com
 # http://inventwithpython.com/pygame
 # Released under a "Simplified BSD" license
@@ -19,9 +19,11 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 64   # TODO: Currently need to be a power of two - fix this in crossover loop
+POPULATION_SIZE = 4   # TODO: Currently need to be a power of two - fix this in crossover loop
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
+CURRENT_CHROMOSOME = None
+OVERALL_HIGHSCORE = 0
 
 # Define settings and constants
 pyautogui.PAUSE = 0.03
@@ -470,34 +472,76 @@ def draw_status(score, level, best_move):
     # draw generation info
     generation_surf = BASICFONT.render('Generation: %d' % GENERATION_NUMBER, True, TEXTCOLOR)
     generation_rect = generation_surf.get_rect()
-    generation_rect.topleft = (WINDOWWIDTH - 200, 250)
+    generation_rect.topleft = (WINDOWWIDTH - 625, 20)
     DISPLAYSURF.blit(generation_surf, generation_rect)
 
-    if BEST_CHROMOSOME_IN_GENERATION == None:
+    # draw overall highscore
+    OHS_surf = BASICFONT.render('OHS: %d' % OVERALL_HIGHSCORE, True, TEXTCOLOR)
+    OHS_rect = OHS_surf.get_rect()
+    OHS_rect.topleft = (WINDOWWIDTH - 625, 40)
+    DISPLAYSURF.blit(OHS_surf, OHS_rect)
+
+    # Draw current chromsome info
+    if CURRENT_CHROMOSOME is None:
         return
     else:
+        # draw current chromosome
+        current_surf = BASICFONT.render('Current chromosome:', True, TEXTCOLOR)
+        current_rect = current_surf.get_rect()
+        current_rect.topleft = (WINDOWWIDTH - 200, 290)
+        DISPLAYSURF.blit(current_surf, current_rect)
+
+        # draw chromosome attribute a
+        ca_surf = BASICFONT.render('a  =  %s' % round(CURRENT_CHROMOSOME.attributes[0], 3), True, TEXTCOLOR)
+        ca_rect = ca_surf.get_rect()
+        ca_rect.topleft = (WINDOWWIDTH - 200, 320)
+        DISPLAYSURF.blit(ca_surf, ca_rect)
+
+        # draw chromosome attribute b
+        cb_surf = BASICFONT.render('b  =  %s' % round(CURRENT_CHROMOSOME.attributes[1], 3), True, TEXTCOLOR)
+        cb_rect = cb_surf.get_rect()
+        cb_rect.topleft = (WINDOWWIDTH - 200, 340)
+        DISPLAYSURF.blit(cb_surf, cb_rect)
+
+        # draw chromosome attribute c
+        cc_surf = BASICFONT.render('c  =  %s' % round(CURRENT_CHROMOSOME.attributes[2], 3), True, TEXTCOLOR)
+        cc_rect = cc_surf.get_rect()
+        cc_rect.topleft = (WINDOWWIDTH - 200, 360)
+        DISPLAYSURF.blit(cc_surf, cc_rect)
+
+    # draw current chromosome text
+    if BEST_CHROMOSOME_IN_GENERATION is None:
+        return
+    else:
+        # draw best chromosome
+        best_surf = BASICFONT.render('best chromosome:', True, TEXTCOLOR)
+        best_rect = best_surf.get_rect()
+        best_rect.topleft = (WINDOWWIDTH - 626, 80)
+        DISPLAYSURF.blit(best_surf, best_rect)
+
+
         # draw chromosome attribute a
         a_surf = BASICFONT.render('a  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[0],3), True, TEXTCOLOR)
         a_rect = a_surf.get_rect()
-        a_rect.topleft = (WINDOWWIDTH - 200, 290)
+        a_rect.topleft = (WINDOWWIDTH - 625, 110)
         DISPLAYSURF.blit(a_surf, a_rect)
 
         # draw chromosome attribute b
         b_surf = BASICFONT.render('b  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[1],3), True, TEXTCOLOR)
         b_rect = b_surf.get_rect()
-        b_rect.topleft = (WINDOWWIDTH - 200, 310  )
+        b_rect.topleft = (WINDOWWIDTH - 625, 130)
         DISPLAYSURF.blit(b_surf, b_rect)
 
         # draw chromosome attribute c
         c_surf = BASICFONT.render('c  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[2],3), True, TEXTCOLOR)
         c_rect = c_surf.get_rect()
-        c_rect.topleft = (WINDOWWIDTH - 200, 330)
+        c_rect.topleft = (WINDOWWIDTH - 625, 150)
         DISPLAYSURF.blit(c_surf, c_rect)
 
         # draw chromosome high score
-        high_score_surf = BASICFONT.render('High score = %d' % BEST_CHROMOSOME_IN_GENERATION.high_score, True, TEXTCOLOR)
+        high_score_surf = BASICFONT.render('CHS = %d' % BEST_CHROMOSOME_IN_GENERATION.high_score, True, TEXTCOLOR)
         high_score_rect = high_score_surf.get_rect()
-        high_score_rect.topleft = (WINDOWWIDTH - 200, 370)
+        high_score_rect.topleft = (WINDOWWIDTH - 625, 190)
         DISPLAYSURF.blit(high_score_surf, high_score_rect)
 
 
@@ -762,6 +806,7 @@ def get_best_chromosome(population):
 
 
 if __name__ == '__main__':
+
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
@@ -777,12 +822,16 @@ if __name__ == '__main__':
     log_number = create_log_file()
     while True:  # game loop
         for i in range(0, len(population)):
+            CURRENT_CHROMOSOME = population[i]
             run_game(population[i])
             show_text_screen('Game Over')
 
         BEST_CHROMOSOME_IN_GENERATION = get_best_chromosome(population)
         write_generation_to_log(BEST_CHROMOSOME_IN_GENERATION, log_number)
         GENERATION_NUMBER += 1
+
+        if BEST_CHROMOSOME_IN_GENERATION.high_score > OVERALL_HIGHSCORE:
+            OVERALL_HIGHSCORE = BEST_CHROMOSOME_IN_GENERATION.high_score
 
         population = selection(population)
 
