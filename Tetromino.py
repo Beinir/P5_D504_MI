@@ -7,16 +7,19 @@ from pygame.locals import *
 import ReinforcementLearning as rl
 import math
 import Log
+import pyautogui
 # region constants
-FPS = 25
+pyautogui.PAUSE = 0.2
+
+FPS = 50
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
 BOXSIZE = 20
 BOARDWIDTH = 10
 BOARDHEIGHT = 20
 BLANK = '0'
-MOVESIDEWAYSFREQ = 0.15
-MOVEDOWNFREQ = 0.1
+MOVESIDEWAYSFREQ = 0.075
+MOVEDOWNFREQ = 0.05
 XMARGIN = int((WINDOWWIDTH - BOARDWIDTH * BOXSIZE) / 2)
 TOPMARGIN = WINDOWHEIGHT - (BOARDHEIGHT * BOXSIZE) - 5
 # endregion
@@ -71,6 +74,7 @@ T_SHAPE_TEMPLATE = [['00000', '00100', '01110', '00000',
                     ['00000', '00000', '01110', '00100',
                      '00000'], ['00000', '00100', '01100', '00100', '00000']]
 
+
 SHAPES = {'S': S_SHAPE_TEMPLATE,
           'Z': Z_SHAPE_TEMPLATE,
           'J': J_SHAPE_TEMPLATE,
@@ -86,6 +90,9 @@ def main():
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    for i in range(0, len(rl.weights)):
+        rl.weights[i] = random.uniform(-10, -1)
+    print(rl.weights)
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
     pygame.display.set_caption('Tetromino')
@@ -120,15 +127,15 @@ def runGame(weights, explore_change):
 
             if not is_valid_position(board, fallingPiece):
                 rl.game_score_arr.append((rl.game_num, rl.score))
-                rl.weights = rl.reinforcement_learning(current_move, board, fallingPiece, weights)
                 rl.explore_change = explore_change
                 Log.create_and_append_log_file(rl.game_score_arr, explore_change, weights, rl.game_num)
                 rl.game_num += 1
                 return  # can't fit a new piece on the board, so game over
-            current_move = rl.find_best_move(board, fallingPiece, weights, explore_change)
+
+            current_move, weights = rl.find_move_update_weights(board, fallingPiece, weights, explore_change)
 
             if explore_change > rl.min_explore_change:
-                explore_change *= 0.99
+                explore_change *= rl.decay_rate
             else:
                 explore_change = 0
 

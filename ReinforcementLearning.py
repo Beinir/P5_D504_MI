@@ -2,16 +2,17 @@ import pyautogui as gui
 import Tetromino as tet
 import copy
 import random
+import math
 import sys
 #region Constants
 discount_rate = 0.6
 learning_rate = 0.1
 
-explore_change = 1
+explore_change = 0.05
 min_explore_change = 0.001
-decay_rate = 0.01
+decay_rate = 0.99
 
-weights = [-1, -1, -1, -30]
+weights = [-1, -1, -1, -1]
 """
     weights list of four floats:
     * Sum of all column heights.
@@ -110,9 +111,7 @@ def simulate_board(test_board, test_piece, move):
         tet.add_to_board(test_board, test_piece)
         test_lines_removed, test_board = tet.remove_complete_lines(test_board)
 
-    height_sum, diff_heights, max_height, holes = get_parameters(test_board)
-    one_step_reward = 5 * (test_lines_removed * test_lines_removed) - holes
-    return test_board#, one_step_reward
+    return test_board, test_lines_removed
 
 
 def get_expected_score(test_board, weights):
@@ -122,6 +121,10 @@ def get_expected_score(test_board, weights):
     C = weights[2]
     D = weights[3]
     return float(A * height_sum + B * diff_heights + C * max_height + D * holes)
+
+
+def get_one_step_reward(lines_removed, params, weights):
+    return float(lines_removed ** 2 + weights[0] * params[0] + weights[1] * params[1] + weights[2] * params[2] + weights[3] * params[3])
 
 
 def find_best_move(board, piece, weights, explore_change):
@@ -135,7 +138,7 @@ def find_best_move(board, piece, weights, explore_change):
             test_board = simulate_board(test_board, test_piece, move)
             if test_board is not None:
                 move_list.append(move)
-                test_score = get_expected_score(test_board, weights)
+                test_score = get_expected_score(test_board[0], weights)
                 score_list.append(test_score)
     best_score = max(score_list)
     best_move = move_list[score_list.index(best_score)]
@@ -146,9 +149,20 @@ def find_best_move(board, piece, weights, explore_change):
         return best_move
 
 
-def reinforcement_learning(move, board, piece, weights):
-    params = get_parameters(board)
-
-    for i in range(0, len(weights)):
-        weights[i] = weights[i] + learning_rate * (score + discount_rate * params[i])
-    return weights
+def find_move_update_weights(board, piece, weights, explore_change):
+    move = find_best_move(board, piece, weights, explore_change)
+    old_params = get_parameters(board)
+    test_board = copy.deepcopy(board)
+    test_piece = copy.deepcopy(piece)
+    test_board = simulate_board(test_board, test_piece, move)
+    if test_board is not None:
+        new_params = get_parameters(test_board[0])
+        one_step_reward = (get_one_step_reward(test_board[1], old_params, weights))/10
+        for i in range(0, len(weights)):
+            weights[i] = (1 - learning_rate) * weights[i] + learning_rate * (one_step_reward + discount_rate * (new_params[i] - old_params[i]))
+        regularization_term = abs(sum(weights))
+        for i in range(0, len(weights)):
+            weights[i] = 40 * weights[i] / regularization_term
+            weights[i] = math.floor(1e4 * weights[i]) / 1e4  # Rounds the weights
+    print(weights)
+    return move, weights

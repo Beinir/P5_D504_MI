@@ -1,0 +1,10 @@
+Date: 2018-10-22 12:42:14.340804
+Prototype: 1
+Game number: 0
+Score: 43
+Explore change: 0.017230609167375895
+Weight 0: -2.4682
+Weight 1: -2.5122
+Weight 2: -2.5098
+Weight 3: -2.5099
+
