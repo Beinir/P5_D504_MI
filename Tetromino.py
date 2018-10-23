@@ -12,6 +12,7 @@ import math
 import copy
 import pygame.locals as keys
 import pyautogui
+import matplotlib.pyplot as plt
 import operator
 from random import shuffle
 import datetime
@@ -25,8 +26,16 @@ BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
 OVERALL_HIGHSCORE = 0
 
+# data plot variables
+BEST_CHROMOSOME_GENERATION_HIGH_SCORES = []
+GENERATION_NUMBERS = []
+AVERAGE_A = []
+AVERAGE_B = []
+AVERAGE_C = []
+AVERAGE_HIGH_SCORE = []
+
 # Define settings and constants
-pyautogui.PAUSE = 0.03
+pyautogui.PAUSE = 0.02
 pyautogui.FAILSAFE = True
 
 
@@ -271,7 +280,43 @@ def make_text_objs(text, font, color):
     return surf, surf.get_rect()
 
 
+def make_plots():
+    # Plot high score per generation
+    plt.figure(1)
+    plt.plot(GENERATION_NUMBERS, BEST_CHROMOSOME_GENERATION_HIGH_SCORES)
+    plt.xlabel('Generation')
+    plt.ylabel('High Score')
+    plt.title('Best chromosome high score per generation')
+    # plt.axis([1, GENERATION_NUMBER + 1, 0, OVERALL_HIGHSCORE * 1.1])
+    plt.xlim(1, GENERATION_NUMBER + 1)
+    plt.ylim(0, OVERALL_HIGHSCORE * 1.1)
+    plt.grid(True)
+
+    plt.figure(2)
+    plt.plot(GENERATION_NUMBERS, AVERAGE_A, 'bo-', label='a')
+    plt.plot(GENERATION_NUMBERS, AVERAGE_B, 'ro-', label='b')
+    plt.plot(GENERATION_NUMBERS, AVERAGE_C, 'go-', label='c')
+    plt.xlabel('Generation')
+    plt.ylabel('Value')
+    plt.title('Average weights per generation')
+    plt.xlim(1, GENERATION_NUMBER + 1)
+    plt.ylim(-11, 11)
+    plt.grid(True)
+    plt.legend()
+
+    plt.figure(3)
+    plt.plot(GENERATION_NUMBERS, AVERAGE_HIGH_SCORE)
+    plt.xlabel('Generation')
+    plt.ylabel('High Score')
+    plt.title('Average high score per generation')
+    plt.xlim(1, GENERATION_NUMBER + 1)
+    plt.ylim(0, OVERALL_HIGHSCORE * 1.1)
+    plt.grid(True)
+    plt.show()
+
+
 def terminate():
+    make_plots()
     pygame.quit()
     sys.exit()
 
@@ -780,6 +825,7 @@ def create_log_file():
 
     return number
 
+
 # Writes game data to a log file
 def write_generation_to_log(Chromosome, log_number):
 
@@ -820,12 +866,32 @@ if __name__ == '__main__':
 
     log_number = create_log_file()
     while True:  # game loop
-        for i in range(0, len(population)):
+        sum_a = 0
+        sum_b = 0
+        sum_c = 0
+        sum_high_score = 0
+
+        for i in range(0, len(population)):  # chromosome loop(one per game)
             CURRENT_CHROMOSOME = population[i]
             run_game(population[i])
             show_text_screen('Game Over')
 
+            # plot data
+            sum_a += CURRENT_CHROMOSOME.attributes[0]
+            sum_b += CURRENT_CHROMOSOME.attributes[1]
+            sum_c += CURRENT_CHROMOSOME.attributes[2]
+            sum_high_score += CURRENT_CHROMOSOME.high_score
+
+        # Data for plotting
+        GENERATION_NUMBERS.append(GENERATION_NUMBER)
         BEST_CHROMOSOME_IN_GENERATION = get_best_chromosome(population)
+        BEST_CHROMOSOME_GENERATION_HIGH_SCORES.append(BEST_CHROMOSOME_IN_GENERATION.high_score)
+        AVERAGE_A.append(sum_a / POPULATION_SIZE)
+        AVERAGE_B.append(sum_b / POPULATION_SIZE)
+        AVERAGE_C.append(sum_c / POPULATION_SIZE)
+        AVERAGE_HIGH_SCORE.append(sum_high_score / POPULATION_SIZE)
+
+        # Write to log
         write_generation_to_log(BEST_CHROMOSOME_IN_GENERATION, log_number)
         GENERATION_NUMBER += 1
 
