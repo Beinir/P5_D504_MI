@@ -1,4 +1,4 @@
-   # Tetromino (a Tetris clone)
+# Tetromino (a Tetris clone)
 # By Al Sweigart al@inventwithpython.com
 # http://inventwithpython.com/pygame
 # Released under a "Simplified BSD" license
@@ -634,7 +634,6 @@ def selection(population):
         chromosome = copied_population.pop()
         offspring.append(chromosome)
 
-    assert len(offspring) == POPULATION_SIZE
     return offspring
 # endregion
 
@@ -720,9 +719,9 @@ def find_best_move(board, piece, chromosome):
     moves = []
     scores = []
 
-    for rot in range(0, len(PIECES[piece['shape']])):  # TODO: How does this work?
-        for sideways in range(-5, 6):  # TODO: Why this range?
-            move = [rot, sideways]  # TODO: change array to tuple?
+    for rot in range(0, len(PIECES[piece['shape']])):
+        for sideways in range(-5, 6):
+            move = [rot, sideways]
             test_board = copy.deepcopy(board)
             test_piece = copy.deepcopy(piece)
             test_board = simulate_board(test_board, test_piece, move)
