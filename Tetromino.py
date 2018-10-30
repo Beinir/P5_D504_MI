@@ -19,8 +19,8 @@ import datetime
 
 # genetic variables
 MUTATION = 5
-CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 4   # TODO: Currently need to be a power of two - fix this in crossover loop
+CHROMOSOME_SIZE = 4
+POPULATION_SIZE = 8   # TODO: Currently need to be a power of two - fix this in crossover loop
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
@@ -554,6 +554,12 @@ def draw_status(score, level, best_move):
         cc_rect.topleft = (WINDOWWIDTH - 200, 360)
         DISPLAYSURF.blit(cc_surf, cc_rect)
 
+        # draw chromosome attribute d
+        cd_surf = BASICFONT.render('d  =  %s' % round(CURRENT_CHROMOSOME.attributes[3], 3), True, TEXTCOLOR)
+        cd_rect = cd_surf.get_rect()
+        cd_rect.topleft = (WINDOWWIDTH - 200, 380)
+        DISPLAYSURF.blit(cd_surf, cd_rect)
+
     # draw current chromosome text
     if BEST_CHROMOSOME_IN_GENERATION is None:
         return
@@ -583,10 +589,16 @@ def draw_status(score, level, best_move):
         c_rect.topleft = (WINDOWWIDTH - 625, 150)
         DISPLAYSURF.blit(c_surf, c_rect)
 
+        # draw chromosome attribute d
+        d_surf = BASICFONT.render('d  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[3], 3), True, TEXTCOLOR)
+        d_rect = d_surf.get_rect()
+        d_rect.topleft = (WINDOWWIDTH - 625, 170)
+        DISPLAYSURF.blit(d_surf, d_rect)
+
         # draw chromosome high score
         high_score_surf = BASICFONT.render('CHS = %d' % BEST_CHROMOSOME_IN_GENERATION.high_score, True, TEXTCOLOR)
         high_score_rect = high_score_surf.get_rect()
-        high_score_rect.topleft = (WINDOWWIDTH - 625, 190)
+        high_score_rect.topleft = (WINDOWWIDTH - 625, 210)
         DISPLAYSURF.blit(high_score_surf, high_score_rect)
 
 
@@ -718,6 +730,21 @@ def get_number_of_holes(board):
                 holes += 1
 
     return holes
+
+
+def get_deepest_well(board):
+    # Finds deepest wells(1-width column filled on both sides)
+    deepest_wells = 0
+
+    for i in range(0, BOARDWIDTH):
+        current_well = 0
+        for j in range(0, BOARDHEIGHT):
+            if int(board[i][j]) == 0:
+                current_well += 1
+            if int(board[i][j]) == 0 and current_well >= 2:
+                deepest_wells += 1
+
+    return deepest_wells
 # endregion
 
 
@@ -726,12 +753,14 @@ def get_expected_score(test_board, completed_lines, chromosome):
     # Calculates the score of a given board state given the attributes of the chromosome
     aggregate_height = get_aggregate_height(test_board)
     holes = get_number_of_holes(test_board)
+    deepest_wells = get_deepest_well(test_board)
 
     a = chromosome.attributes[0]
     b = chromosome.attributes[1]
     c = chromosome.attributes[2]
+    d = chromosome.attributes[3]
 
-    expected_score = a * aggregate_height + b * completed_lines + c * holes
+    expected_score = a * aggregate_height + b * completed_lines + c * holes + d * deepest_wells
 
     return expected_score
 
@@ -835,6 +864,7 @@ def write_generation_to_log(Chromosome, log_number):
     log.write("a = " + str(Chromosome.attributes[0]) + "\n")
     log.write("b = " + str(Chromosome.attributes[1]) + "\n")
     log.write("c = " + str(Chromosome.attributes[2]) + "\n")
+    log.write("d = " + str(Chromosome.attributes[3]) + "\n")
     log.write("High score = " + str(Chromosome.high_score) + "\n\n")
 
     log.close()
