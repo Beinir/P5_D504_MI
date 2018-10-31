@@ -14,8 +14,7 @@ def create_and_append_log_file(game_score_arr, explore_change, weights, game_num
     log.write("Explore change: " + str(explore_change) + "\n")
     log.write("Weight 0: " + str(weights[0]) + "\n")
     log.write("Weight 1: " + str(weights[1]) + "\n")
-    log.write("Weight 2: " + str(weights[2]) + "\n")
-    log.write("Weight 3: " + str(weights[3]) + "\n\n")
+    log.write("Weight 2: " + str(weights[2]) + "\n\n")
 
     log.close()
 

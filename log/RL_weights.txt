@@ -1,10 +1,136 @@
-Date: 2018-10-22 12:42:14.340804
+Date: 2018-10-25 10:02:11.729975
 Prototype: 1
 Game number: 0
-Score: 43
-Explore change: 0.017230609167375895
-Weight 0: -2.4682
-Weight 1: -2.5122
-Weight 2: -2.5098
-Weight 3: -2.5099
+Score: 15
+Explore change: 0.026813411260359257
+Weight 0: -10.0001
+Weight 1: -10.0001
+Weight 2: -10.0
+Weight 3: -10.0
+
+Date: 2018-10-25 10:04:02.514471
+Prototype: 1
+Game number: 0
+Score: 25
+Explore change: 0.02237616068819054
+Weight 0: -10.0
+Weight 1: -10.0001
+Weight 2: -10.0001
+Weight 3: -10.0
+
+Date: 2018-10-25 13:56:09.856111
+Prototype: 1
+Game number: 0
+Score: 0
+Explore change: 0.04130843119177932
+Weight 0: 5.65943307914938
+Weight 1: 4.5137286301870265
+Weight 2: -4.316785799890188
+Date: 2018-10-25 14:13:55.005533
+Prototype: 1
+Game number: 0
+Score: 4
+Explore change: 0.031809274303193545
+Weight 0: -1
+Weight 1: -5
+Weight 2: 7
+
+Date: 2018-10-25 14:14:21.769079
+Prototype: 1
+Game number: 1
+Score: 7
+Explore change: 0.01924480394467424
+Weight 0: -1
+Weight 1: -5
+Weight 2: 7
+
+Date: 2018-10-25 14:14:38.197001
+Prototype: 1
+Game number: 2
+Score: 3
+Explore change: 0.013537712975599723
+Weight 0: -1
+Weight 1: -5
+Weight 2: 7
+
+Date: 2018-10-25 14:15:00.159850
+Prototype: 1
+Game number: 3
+Score: 7
+Explore change: 0.008699491423813212
+Weight 0: -1
+Weight 1: -5
+Weight 2: 7
+
+Date: 2018-10-25 14:15:15.341720
+Prototype: 1
+Game number: 4
+Score: 1
+Explore change: 0.006119637189749925
+Weight 0: -1
+Weight 1: -5
+Weight 2: 7
+
+Date: 2018-10-25 14:15:35.155286
+Prototype: 1
+Game number: 5
+Score: 2
+Explore change: 0.004176986483660263
+Weight 0: -1
+Weight 1: -5
+Weight 2: 7
+
+Date: 2018-10-26 11:18:49.924179
+Prototype: 1
+Game number: 0
+Score: 9
+Explore change: 0.02935183909687422
+Weight 0: -1
+Weight 1: -5
+Weight 2: 3
+
+Date: 2018-10-26 11:19:51.182625
+Prototype: 1
+Game number: 0
+Score: 18
+Explore change: 0
+Weight 0: -1
+Weight 1: -5
+Weight 2: 3
+
+Date: 2018-10-29 10:54:55.841536
+Prototype: 1
+Game number: 0
+Score: 8
+Explore change: 0
+Weight 0: -1
+Weight 1: -30
+Weight 2: 5
+
+Date: 2018-10-29 10:55:06.799642
+Prototype: 1
+Game number: 1
+Score: 0
+Explore change: 0
+Weight 0: -1
+Weight 1: -30
+Weight 2: 5
+
+Date: 2018-10-31 13:33:52.764997
+Prototype: 1
+Game number: 0
+Score: 5
+Explore change: 0
+Weight 0: -1
+Weight 1: -30
+Weight 2: 5
+
+Date: 2018-10-31 13:34:24.317130
+Prototype: 1
+Game number: 1
+Score: 13
+Explore change: 0
+Weight 0: -1
+Weight 1: -30
+Weight 2: 5
 

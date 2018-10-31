@@ -9,7 +9,7 @@ import math
 import Log
 import pyautogui
 # region constants
-pyautogui.PAUSE = 0.2
+pyautogui.PAUSE = 0.03
 
 FPS = 50
 WINDOWWIDTH = 640
@@ -60,19 +60,20 @@ I_SHAPE_TEMPLATE = [['00100', '00100', '00100', '00100', '00000'],
 
 O_SHAPE_TEMPLATE = [['00000', '00000', '01100', '01100', '00000']]
 
-J_SHAPE_TEMPLATE = [['00000', '01000', '01110', '00000',
-                     '00000'], ['00000', '00110', '00100', '00100', '00000'],
-                    ['00000', '00000', '01110', '00010',
-                     '00000'], ['00000', '00100', '00100', '01100', '00000']]
-L_SHAPE_TEMPLATE = [['00000', '00010', '01110', '00000',
-                     '00000'], ['00000', '00100', '00100', '00110', '00000'],
-                    ['00000', '00000', '01110', '01000',
-                     '00000'], ['00000', '01100', '00100', '00100', '00000']]
+J_SHAPE_TEMPLATE = [['00000', '01000', '01110', '00000', '00000'],
+                    ['00000', '00110', '00100', '00100', '00000'],
+                    ['00000', '00000', '01110', '00010', '00000'],
+                    ['00000', '00100', '00100', '01100', '00000']]
 
-T_SHAPE_TEMPLATE = [['00000', '00100', '01110', '00000',
-                     '00000'], ['00000', '00100', '00110', '00100', '00000'],
-                    ['00000', '00000', '01110', '00100',
-                     '00000'], ['00000', '00100', '01100', '00100', '00000']]
+L_SHAPE_TEMPLATE = [['00000', '00010', '01110', '00000', '00000'],
+                    ['00000', '00100', '00100', '00110', '00000'],
+                    ['00000', '00000', '01110', '01000', '00000'],
+                    ['00000', '01100', '00100', '00100', '00000']]
+
+T_SHAPE_TEMPLATE = [['00000', '00100', '01110', '00000', '00000'],
+                    ['00000', '00100', '00110', '00100', '00000'],
+                    ['00000', '00000', '01110', '00100', '00000'],
+                    ['00000', '00100', '01100', '00100', '00000']]
 
 
 SHAPES = {'S': S_SHAPE_TEMPLATE,
@@ -82,6 +83,10 @@ SHAPES = {'S': S_SHAPE_TEMPLATE,
           'I': I_SHAPE_TEMPLATE,
           'O': O_SHAPE_TEMPLATE,
           'T': T_SHAPE_TEMPLATE}
+
+# SHAPES = {'I': I_SHAPE_TEMPLATE,
+#           'O': O_SHAPE_TEMPLATE}
+
 # endregion
 
 
@@ -90,8 +95,8 @@ def main():
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-    for i in range(0, len(rl.weights)):
-        rl.weights[i] = random.uniform(-10, -1)
+    # for i in range(0, 3):
+    #     rl.weights.append(random.uniform(-10, 10))
     print(rl.weights)
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
@@ -114,15 +119,17 @@ def runGame(weights, explore_change):
     movingLeft = False
     movingRight = False
     level, fallFreq = get_level_and_fall_freq(rl.score)
-    fallingPiece = get_new_piece()
-    nextPiece = get_new_piece()
+    # fallingPiece = get_new_piece()
+    fallingPiece = None
+    next_piece = get_new_piece()
     current_move = [0, 0]
+    rl.score = 0
 
     while True: # main game loop
         if fallingPiece == None:
             # No falling piece in play, so start a new piece at the top
-            fallingPiece = nextPiece
-            nextPiece = get_new_piece()
+            fallingPiece = next_piece
+            next_piece = get_new_piece()
             lastFallTime = time.time()  # reset lastFallTime
 
             if not is_valid_position(board, fallingPiece):
@@ -130,9 +137,10 @@ def runGame(weights, explore_change):
                 rl.explore_change = explore_change
                 Log.create_and_append_log_file(rl.game_score_arr, explore_change, weights, rl.game_num)
                 rl.game_num += 1
+
                 return  # can't fit a new piece on the board, so game over
 
-            current_move, weights = rl.find_move_update_weights(board, fallingPiece, weights, explore_change)
+            current_move, weights = rl.find_best_move(board, fallingPiece, weights, explore_change, next_piece)
 
             if explore_change > rl.min_explore_change:
                 explore_change *= rl.decay_rate
@@ -231,7 +239,7 @@ def runGame(weights, explore_change):
         DISPLAYSURF.fill(BGCOLOR)
         draw_board(board)
         draw_status(rl.score, level, current_move)
-        draw_next_piece(nextPiece)
+        draw_next_piece(next_piece)
         if fallingPiece != None:
             draw_piece(fallingPiece)
 
@@ -463,6 +471,7 @@ def draw_next_piece(piece):
     next_rect.topleft = (WINDOWWIDTH - 120, 160)
     DISPLAYSURF.blit(next_surf, next_rect)
     # draw the "next" piece
+    draw_piece(piece, pixelx=WINDOWWIDTH - 155, pixely=180)
 
 if __name__ == '__main__':
     main()

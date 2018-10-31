@@ -5,26 +5,46 @@ import random
 import math
 import sys
 #region Constants
-discount_rate = 0.6
-learning_rate = 0.1
+discount_rate = 0.1
+learning_rate = 0.5
 
-explore_change = 0.05
+explore_change = 0.0
 min_explore_change = 0.001
 decay_rate = 0.99
 
-weights = [-1, -1, -1, -1]
+weights = [-1, -30, 5]
 """
     weights list of four floats:
-    * Sum of all column heights.
-    * Absolute column difference.
-    * Maximum height on the board.
+    * The bumpiness.
     * Number of holes on the board.
+    * Score
 """
 
 score = 0
 game_score_arr = []  # Array of tuples containing the game number and associated score
 game_num = 0
 #endregion
+
+
+def get_bumpiness(board):
+    # Calculate the aggregate height of the board, by taking the
+    # difference in height between each pair of columns (e.g diff between column 1 and 2)
+
+    heights = [0] * tet.BOARDWIDTH
+    bumpiness = 0
+
+    for i in range(0, tet.BOARDWIDTH):  # Selects a column
+        for j in range(0, tet.BOARDHEIGHT):  # Goes down from the top of the selected column
+            if int(board[i][j]) > 0:
+                heights[i] = tet.BOARDHEIGHT - j  # Stores the height of the given column
+                break  # breaks to find the height of the next column
+
+    for i in range(tet.BOARDWIDTH - 1):
+        highest = max(heights[i], heights[i + 1])
+        lowest = min(heights[i], heights[i + 1])
+        bumpiness += highest - lowest
+
+    return bumpiness
 
 
 def make_move(current_move):
@@ -49,20 +69,7 @@ def make_move(current_move):
 
 def get_parameters(board):
     # Returns number of holes, sum of heights, difference between tallest, shortest column and max height
-    heights = [0] * tet.BOARDWIDTH
     holes = 0
-
-    # Finds the maximum height of each column.
-    # Starts at the top of a column and moves down until an occupied block is found.
-    for i in range(0, tet.BOARDWIDTH):
-        for j in range(0, tet.BOARDHEIGHT):
-
-            if int(board[i][j]) > 0:  # If the cell is occupied the height is stored
-                heights[i] = tet.BOARDHEIGHT - j
-                break
-
-    # Find the difference between the tallest and shortest columns
-    diffs_heights = max(heights) - min(heights)
 
     # Finds the number of holes
     for i in range(0, tet.BOARDWIDTH):
@@ -74,7 +81,9 @@ def get_parameters(board):
                                                                 # increment holes by 1
                 holes += 1
 
-    return sum(heights), diffs_heights, max(heights), holes
+    bumpiness = get_bumpiness(board)
+
+    return bumpiness, holes
 
 
 def simulate_board(test_board, test_piece, move):
@@ -115,21 +124,69 @@ def simulate_board(test_board, test_piece, move):
 
 
 def get_expected_score(test_board, weights):
-    height_sum, diff_heights, max_height, holes = get_parameters(test_board)
+    bumpiness, diff_heights, max_height, holes = get_parameters(test_board)
     A = weights[0]
     B = weights[1]
     C = weights[2]
     D = weights[3]
-    return float(A * height_sum + B * diff_heights + C * max_height + D * holes)
+    return float(A * bumpiness + B * diff_heights + C * (max_height ** 2) + D * (holes ** 2))
 
 
-def get_one_step_reward(lines_removed, params, weights):
-    return float(lines_removed ** 2 + weights[0] * params[0] + weights[1] * params[1] + weights[2] * params[2] + weights[3] * params[3])
+def get_next_move_expected_score(board, piece, weights):
+    scores = []
+
+    for rot in range(0, len(tet.SHAPES[piece['shape']])):
+        for sideways in range(-5, 6):
+            move = [rot, sideways]
+            test_board = copy.deepcopy(board)
+            test_piece = copy.deepcopy(piece)
+            test_board = simulate_board(test_board, test_piece, move)
+            if test_board is not None:
+                scores.append(get_one_step_reward(test_board[1], get_parameters(test_board[0]), weights))
+
+    return max(scores)
 
 
-def find_best_move(board, piece, weights, explore_change):
+def get_one_step_reward(score, params, weights):
+    return float(params[0] * weights[0] + params[1] * weights[1] + score * weights[2])
+
+
+# def find_best_move(board, piece, weights, explore_change):
+#     move_list = []
+#     score_list = []
+#     for rot in range(0, len(tet.SHAPES[piece['shape']])):
+#         for lateral in range(-5, 6):
+#             move = [rot, lateral]
+#             test_board = copy.deepcopy(board)
+#             test_piece = copy.deepcopy(piece)
+#             test_board = simulate_board(test_board, test_piece, move)
+#             if test_board is not None:
+#                 move_list.append(move)
+#                 test_score = get_one_step_reward(test_board[1], get_parameters(test_board[0]), weights)
+#                 # test_score = get_expected_score(test_board[0], weights)
+#                 # test_score = float(test_board[1])
+#                 score_list.append(test_score)
+#     best_score = max(score_list)
+#     best_move = move_list[score_list.index(best_score)]
+#
+#     if random.random() < explore_change:
+#         return move_list[random.randint(0, len(move_list) - 1)]
+#     else:
+#         return best_move
+
+
+def get_quality(current_piece_score, next_piece_score, params, weights):
+    reward = get_one_step_reward(next_piece_score - current_piece_score, params, weights)
+    return current_piece_score + learning_rate * (reward + discount_rate * next_piece_score - current_piece_score)
+
+
+def find_best_move(board, piece, weights, explore_change, next_piece):
     move_list = []
+    both_score_list = [[]]
     score_list = []
+    board_list = []
+    old_params = get_parameters(board)
+    quality_list = []
     for rot in range(0, len(tet.SHAPES[piece['shape']])):
         for lateral in range(-5, 6):
             move = [rot, lateral]
@@ -137,32 +194,66 @@ def find_best_move(board, piece, weights, explore_change):
             test_piece = copy.deepcopy(piece)
             test_board = simulate_board(test_board, test_piece, move)
             if test_board is not None:
+                new_params = get_parameters(test_board[0])
+                params_diff = get_params_diff(new_params, old_params)
                 move_list.append(move)
-                test_score = get_expected_score(test_board[0], weights)
-                score_list.append(test_score)
-    best_score = max(score_list)
-    best_move = move_list[score_list.index(best_score)]
+                current_piece_test_score = get_one_step_reward(test_board[1], get_parameters(test_board[0]), weights)
+                next_piece_test_score = get_next_move_expected_score(test_board[0], next_piece, weights)
+                # score_list.append(current_piece_test_score + next_piece_test_score)
+                #score_list.append(get_one_step_reward(next_piece_test_score - current_piece_test_score, params, weights))
+                # quality = current_piece_test_score + learning_rate * (get_one_step_reward(next_piece_test_score - current_piece_test_score, params, weights) + discount_rate * next_piece_test_score - current_piece_test_score)
+                quality = get_quality(current_piece_test_score, next_piece_test_score, params_diff, weights)
+                quality_list.append(quality)
+    # if random.random() < explore_change:
+    #     return move_list[random.randint(0, len(move_list) - 1)], best_scores
+    # else:
 
-    if random.random() < explore_change:
-        return move_list[random.randint(0, len(move_list) - 1)]
-    else:
-        return best_move
+    # best_score = max(score_list)
+    # best_move = move_list[score_list.index(best_score)]
+    # best_scores = both_score_list[score_list.index(best_score)]
+    # best_board = board_list[score_list.index(best_score)]
+    #
+    # score_increase = best_scores[1] - best_scores[0]
+    # params = get_parameters(best_board)
+
+    best_quality = max(quality_list)
+    best_move = move_list[quality_list.index(best_quality)]
+
+    return best_move, weights
 
 
-def find_move_update_weights(board, piece, weights, explore_change):
-    move = find_best_move(board, piece, weights, explore_change)
-    old_params = get_parameters(board)
-    test_board = copy.deepcopy(board)
-    test_piece = copy.deepcopy(piece)
-    test_board = simulate_board(test_board, test_piece, move)
-    if test_board is not None:
-        new_params = get_parameters(test_board[0])
-        one_step_reward = (get_one_step_reward(test_board[1], old_params, weights))/10
-        for i in range(0, len(weights)):
-            weights[i] = (1 - learning_rate) * weights[i] + learning_rate * (one_step_reward + discount_rate * (new_params[i] - old_params[i]))
-        regularization_term = abs(sum(weights))
-        for i in range(0, len(weights)):
-            weights[i] = 40 * weights[i] / regularization_term
-            weights[i] = math.floor(1e4 * weights[i]) / 1e4  # Rounds the weights
-    print(weights)
-    return move, weights
+def get_params_diff(new_params, old_params):
+    bumpiness_diff = new_params[0] - old_params[0]
+    holes_diff = new_params[1] - old_params[1]
+    return bumpiness_diff, holes_diff
+
+
+# def find_move_update_weights(board, piece, weights, explore_change, next_piece):
+#     move, test_board, one_step_reward = find_best_move(board, piece, weights, explore_change, next_piece)
+#     # test_board = copy.deepcopy(board)
+#     # test_piece = copy.deepcopy(piece)
+#     # test_board = simulate_board(test_board, test_piece, move)
+#     # if next_piece is not None:
+#     #     next_weights = find_move_update_weights(test_board, next_piece, weights, explore_change, None)[1]
+#     if test_board is not None:
+#         params = get_parameters(test_board)
+#         one_step_reward = (get_one_step_reward(test_board[1], params, weights))
+#
+#         for i in range(0, len(weights)):
+#             # weights[i] = (1 - learning_rate) * weights[i] + learning_rate * (one_step_reward + discount_rate * next_weights[i] - weights[i])
+#             weights[i] = weights[i] + learning_rate * (one_step_reward + discount_rate * next_weights[i] - weights[i])
+#
+#         regularization_term = abs(sum(weights))
+#         for i in range(0, len(weights)):
+#             weights[i] = 40 * weights[i] / regularization_term
+#             weights[i] = math.floor(1e4 * weights[i]) / 1e4  # Rounds the weights
+#         print(weights)
+#
+#     return move, weights
+
+def update_weights(board, weights, score):
+    params = get_parameters(board)
+    for i in range(0, len(weights)):
+        weights[i] = weights[i]
+
+    return weights
