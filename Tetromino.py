@@ -310,7 +310,7 @@ def make_plots():
     plt.ylabel('High Score')
     plt.title('Average high score per generation')
     plt.xlim(1, GENERATION_NUMBER + 1)
-    plt.ylim(0, OVERALL_HIGHSCORE * 1.1)
+    plt.ylim(0, max(AVERAGE_HIGH_SCORE) * 1.1)
     plt.grid(True)
     plt.show()
 
