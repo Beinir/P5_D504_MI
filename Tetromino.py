@@ -20,7 +20,7 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 4   # TODO: Currently need to be a power of two - fix this in crossover loop
+POPULATION_SIZE = 32   # TODO: Currently need to be a power of two - fix this in crossover loop
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
@@ -685,24 +685,20 @@ def selection(population):
 
 # region Board state methods
 def get_aggregate_height(board):
-    # Calculate the aggregate height of the board, by taking the
-    # difference in height between each pair of columns (e.g diff between column 1 and 2)
+    # Calculate the aggregate height of the board, by summing the
+    # height of each column. Each row have a height penalty based on it's height (e.g. row_1 = 1...row_20 = 20)
 
     heights = [0]*BOARDWIDTH
-    aggregate_height = 0
 
     for i in range(0, BOARDWIDTH):  # Selects a column
         for j in range(0, BOARDHEIGHT):  # Goes down from the top of the selected column
             if int(board[i][j]) > 0:
-                heights[i] = BOARDHEIGHT - j  # Stores the height of the given column
+                height = (BOARDHEIGHT - j)
+                row_weight = height  # Row weight is equal to the height in the given column
+                heights[i] = height * row_weight  # Stores the height multiplied by the weight of the row
                 break  # breaks to find the height of the next column
 
-    for i in range(BOARDWIDTH - 1):
-        highest = max(heights[i], heights[i + 1])
-        lowest = min(heights[i], heights[i + 1])
-        aggregate_height += highest - lowest
-
-    return aggregate_height
+    return sum(heights)
 
 
 def get_number_of_holes(board):
@@ -718,6 +714,27 @@ def get_number_of_holes(board):
                 holes += 1
 
     return holes
+
+
+def get_bumpiness(board):
+    # Calculate the bumpiness of the board, by taking the
+    # difference in height between each pair of columns (e.g diff between column 1 and 2)
+
+    heights = [0] * BOARDWIDTH
+    bumpiness = 0
+
+    for i in range(0, BOARDWIDTH):  # Selects a column
+        for j in range(0, BOARDHEIGHT):  # Goes down from the top of the selected column
+            if int(board[i][j]) > 0:
+                heights[i] = BOARDHEIGHT - j  # Stores the height of the given column
+                break  # breaks to find the height of the next column
+
+    for i in range(BOARDWIDTH - 1):
+        highest = max(heights[i], heights[i + 1])
+        lowest = min(heights[i], heights[i + 1])
+        bumpiness += highest - lowest
+
+    return bumpiness
 # endregion
 
 

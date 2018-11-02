@@ -60,6 +60,7 @@ class TestGenetic(unittest.TestCase):
         pass
 
     # Test start
+
     # region Genetic algorithm test
     def test_chromosome(self):
         x = Chromosome()
@@ -93,31 +94,31 @@ class TestGenetic(unittest.TestCase):
         self.assertEqual(len(new_population), Tetromino.POPULATION_SIZE)
     # endregion
 
-    # region Test get_aggregate_height
-    def test_aggregate_height_empty_board(self):
-        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board)
+    # region Test get_bumpiness
+    def test_bumpiness_empty_board(self):
+        bumpiness = Tetromino.get_bumpiness(TestGenetic.board)
 
-        self.assertEqual(aggregate_height, 0)
+        self.assertEqual(bumpiness, 0)
 
-    def test_get_aggregate_height_populated_board_1(self):
-        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_1)
+    def test_get_bumpiness_populated_board_1(self):
+        bumpiness = Tetromino.get_bumpiness(TestGenetic.board_1)
 
-        self.assertEqual(aggregate_height, 5)
+        self.assertEqual(bumpiness, 5)
 
-    def test_get_aggregate_height_populated_board_2(self):
-        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_2)
+    def test_get_bumpiness_populated_board_2(self):
+        bumpiness = Tetromino.get_bumpiness(TestGenetic.board_2)
 
-        self.assertEqual(aggregate_height, 5)
+        self.assertEqual(bumpiness, 5)
 
-    def test_get_aggregate_height_populated_board_3(self):
-        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_3)
+    def test_get_bumpiness_populated_board_3(self):
+        bumpiness = Tetromino.get_bumpiness(TestGenetic.board_3)
 
-        self.assertEqual(aggregate_height, 0)
+        self.assertEqual(bumpiness, 0)
 
-    def test_get_aggregate_height_populated_board_4(self):
-        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_4)
+    def test_get_bumpiness_populated_board_4(self):
+        bumpiness = Tetromino.get_bumpiness(TestGenetic.board_4)
 
-        self.assertEqual(aggregate_height, 9)
+        self.assertEqual(bumpiness, 9)
     # endregion
 
     # region Test get_number_of_holes
@@ -145,6 +146,33 @@ class TestGenetic(unittest.TestCase):
         holes = Tetromino.get_number_of_holes(TestGenetic.board_4)
 
         self.assertEqual(holes, 85)
+    # endregion
+
+    # region Test get_aggregate_height
+    def test_get_aggregate_height_empty_board(self):
+        aggregate_height = Tetromino.get_aggregate_height(Tetromino.get_blank_board())
+
+        self.assertEqual(aggregate_height, 0)
+
+    def test_get_aggregate_height_board_1(self):
+        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_1)
+
+        self.assertEqual(aggregate_height, 34)
+
+    def test_get_aggregate_height_board_2(self):
+        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_2)
+
+        self.assertEqual(aggregate_height, 34)
+
+    def test_get_aggregate_height_board_3(self):
+        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_3)
+
+        self.assertEqual(aggregate_height, 250)
+
+    def test_get_aggregate_height_board_4(self):
+        aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_4)
+
+        self.assertEqual(aggregate_height, 985)
     # endregion
 
     def test_get_best_chromosome(self):
