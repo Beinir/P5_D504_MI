@@ -694,8 +694,7 @@ def get_aggregate_height(board):
         for j in range(0, BOARDHEIGHT):  # Goes down from the top of the selected column
             if int(board[i][j]) > 0:
                 height = (BOARDHEIGHT - j)
-                row_weight = height  # Row weight is equal to the height in the given column
-                heights[i] = height * row_weight  # Stores the height multiplied by the weight of the row
+                heights[i] = height * (height * 0.1)
                 break  # breaks to find the height of the next column
 
     return sum(heights)
