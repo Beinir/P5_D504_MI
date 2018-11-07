@@ -20,11 +20,13 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 32   # TODO: Currently need to be a power of two - fix this in crossover loop
+POPULATION_SIZE = 30  # Population % 2 need to be zero
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
 OVERALL_HIGHSCORE = 0
+WEIGHT_AGGREGATE_HEIGHT = 0.025
+K = 0.75  # Tournament selection parameter
 
 # data plot variables
 BEST_CHROMOSOME_GENERATION_HIGH_SCORES = []
@@ -633,53 +635,55 @@ def create_population():
     return population
 
 
-def crossover(population):
-    offspring = []
+def crossover(parent1, parent2):
+    offspring1 = Chromosome()
+    offspring2 = Chromosome()
+    crossover_point = math.ceil(CHROMOSOME_SIZE/2)
 
-    shuffle(population)  # Shuffles the population in order to pair parents randomly
-    while len(population) != 0:  # TODO: this line requires the population to be a power of 2
-        parent1 = population.pop()
-        parent2 = population.pop()
+    # Generates offspring1
+    for i in range(CHROMOSOME_SIZE):
+        if i < crossover_point:
+            offspring1.attributes[i] = parent1.attributes[i]
+            offspring2.attributes[i] = parent2.attributes[i]
+        else:
+            offspring1.attributes[i] = parent2.attributes[i]
+            offspring2.attributes[i] = parent1.attributes[i]
 
-        child = Chromosome()
-
-        for i in range(CHROMOSOME_SIZE):
-            if random.randint(1, 100) > MUTATION:
-                if random.randint(1, 2) == 1:
-                    child.attributes[i] = parent1.attributes[i]
-                else:
-                    child.attributes[i] = parent2.attributes[i]
-            else:
-                child.attributes[i] = random.uniform(-10.0, 10.0)
-
-        offspring.append(child)
-
-    return offspring
+    return offspring1, offspring2
 
 
 def selection(population):
-    copied_population = copy.copy(population)
-    strongest_chromosomes = []
+    new_population = []
 
-    shuffle(population)
-    for _ in range(int(len(population)/2)):  # Pairs up the population, except the last one if population/2 is odd
-        x = population.pop()
-        y = population.pop()
+    for i in range(int(len(population) / 2)):
+        parent1 = selectParent(population)
+        parent2 = selectParent(population)
 
-        if x.high_score > y.high_score:
-            strongest_chromosomes.append(x)
+        offspring1, offspring2 = crossover(parent1, parent2)
+        new_population.extend([offspring1, offspring2])
+
+    return new_population
+
+
+def selectParent(population):
+    # Pops the first chromosome in order to not pick it again as the second
+    chromosome1 = population.pop(random.randint(0, len(population) - 1))
+    chromosome2 = population[random.randint(0, len(population) - 1)]
+
+    population.append(chromosome1)  # Adds the chromosome so it can be picked in the next call to selectParent
+
+    r = random.uniform(0, 1)
+
+    if r < K:
+        if chromosome1.high_score >= chromosome2.high_score:
+            return chromosome1
         else:
-            strongest_chromosomes.append(y)
-
-    offspring = crossover(strongest_chromosomes)
-
-    copied_population.sort(key=operator.attrgetter('high_score'))
-
-    while len(offspring) != POPULATION_SIZE:
-        chromosome = copied_population.pop()
-        offspring.append(chromosome)
-
-    return offspring
+            return chromosome2
+    else:
+        if chromosome1.high_score <= chromosome2.high_score:
+            return chromosome1
+        else:
+            return chromosome2
 # endregion
 
 
@@ -694,7 +698,7 @@ def get_aggregate_height(board):
         for j in range(0, BOARDHEIGHT):  # Goes down from the top of the selected column
             if int(board[i][j]) > 0:
                 height = (BOARDHEIGHT - j)
-                heights[i] = height * (height * 0.1)
+                heights[i] = height * (height * WEIGHT_AGGREGATE_HEIGHT)
                 break  # breaks to find the height of the next column
 
     return sum(heights)
@@ -867,6 +871,7 @@ def get_best_chromosome(population):
 
 
 if __name__ == '__main__':
+    assert(POPULATION_SIZE % 2 == 0)
 
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
     pygame.init()

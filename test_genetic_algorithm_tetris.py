@@ -82,10 +82,25 @@ class TestGenetic(unittest.TestCase):
                 self.assertIsInstance(self.population[i], Chromosome)
 
     def test_crossover(self):
-        offspring = Tetromino.crossover(self.population)
+        parent1 = Chromosome()
+        parent2 = Chromosome()
 
-        self.assertNotEqual(self.population, offspring)
-        self.assertEqual(len(offspring), Tetromino.POPULATION_SIZE/2)  # Crossover creates half a new population
+        offspring1, offspring2 = Tetromino.crossover(parent1, parent2)
+
+        self.assertNotEqual(offspring1, parent1)
+        self.assertNotEqual(offspring1, parent2)
+        self.assertNotEqual(offspring2, parent1)
+        self.assertNotEqual(offspring2, parent2)
+
+        for i in range(Tetromino.CHROMOSOME_SIZE):
+            with self.subTest(i=i):
+                if(i < Tetromino.CHROMOSOME_SIZE/2):
+                    self.assertEqual(offspring1.attributes[i], parent1.attributes[i])
+                    self.assertEqual(offspring2.attributes[i], parent2.attributes[i])
+                else:
+                    self.assertEqual(offspring1.attributes[i], parent2.attributes[i])
+                    self.assertEqual(offspring2.attributes[i], parent1.attributes[i])
+
 
     def test_selection(self):
         new_population = Tetromino.selection(self.population)
@@ -152,27 +167,42 @@ class TestGenetic(unittest.TestCase):
     def test_get_aggregate_height_empty_board(self):
         aggregate_height = Tetromino.get_aggregate_height(Tetromino.get_blank_board())
 
-        self.assertEqual(aggregate_height, 0)
+        height = 0
+        result = height * Tetromino.WEIGHT_AGGREGATE_HEIGHT
+
+        self.assertEqual(aggregate_height, result)
 
     def test_get_aggregate_height_board_1(self):
         aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_1)
 
-        self.assertEqual(aggregate_height, 34)
+        height = 34
+        result = height * Tetromino.WEIGHT_AGGREGATE_HEIGHT
+
+        self.assertEqual(aggregate_height, result)
 
     def test_get_aggregate_height_board_2(self):
         aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_2)
 
-        self.assertEqual(aggregate_height, 34)
+        height = 34
+        result = height * Tetromino.WEIGHT_AGGREGATE_HEIGHT
+
+        self.assertEqual(aggregate_height, result)
 
     def test_get_aggregate_height_board_3(self):
         aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_3)
 
-        self.assertEqual(aggregate_height, 250)
+        height = 250
+        result = height * Tetromino.WEIGHT_AGGREGATE_HEIGHT
+
+        self.assertEqual(aggregate_height, result)
 
     def test_get_aggregate_height_board_4(self):
         aggregate_height = Tetromino.get_aggregate_height(TestGenetic.board_4)
 
-        self.assertEqual(aggregate_height, 985)
+        height = 985
+        result = height * Tetromino.WEIGHT_AGGREGATE_HEIGHT
+
+        self.assertEqual(aggregate_height, result)
     # endregion
 
     def test_get_best_chromosome(self):
