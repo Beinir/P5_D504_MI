@@ -20,7 +20,7 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 30  # Population % 2 need to be zero
+POPULATION_SIZE = 2  # Population % 2 need to be zero
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
@@ -635,20 +635,43 @@ def create_population():
     return population
 
 
+# Two point crossover
 def crossover(parent1, parent2):
     offspring1 = Chromosome()
     offspring2 = Chromosome()
-    crossover_point = math.ceil(CHROMOSOME_SIZE/2)
 
-    # Generates offspring1
+    first_crossover_point = 0
+    second_crossover_point = 0
+
+    remaining_genes = CHROMOSOME_SIZE  # Only used to split the gene up into three parts
+    while remaining_genes > 0:
+        if remaining_genes > 0:
+            first_crossover_point += 1
+            remaining_genes -= 1
+        if remaining_genes > 0:
+            second_crossover_point += 1
+            remaining_genes -= 1
+
+        remaining_genes -= 1  # The last gene, if any, is in the third part and won't be swapped
+
+    second_crossover_point = first_crossover_point + second_crossover_point
+
+    # Generates offspring -- Only the part between point1 and point2 are swapped
     for i in range(CHROMOSOME_SIZE):
-        if i < crossover_point:
-            offspring1.attributes[i] = parent1.attributes[i]
-            offspring2.attributes[i] = parent2.attributes[i]
-        else:
+        if first_crossover_point <= i & i <= second_crossover_point:
             offspring1.attributes[i] = parent2.attributes[i]
             offspring2.attributes[i] = parent1.attributes[i]
+        else:
+            offspring1.attributes[i] = parent1.attributes[i]
+            offspring2.attributes[i] = parent2.attributes[i]
 
+    print(parent1.attributes)
+    print(offspring1.attributes)
+    print("\n")
+
+    print(parent2.attributes)
+    print(offspring2.attributes)
+    print("\n")
     return offspring1, offspring2
 
 

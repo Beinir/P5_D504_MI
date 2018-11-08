@@ -92,15 +92,15 @@ class TestGenetic(unittest.TestCase):
         self.assertNotEqual(offspring2, parent1)
         self.assertNotEqual(offspring2, parent2)
 
-        for i in range(Tetromino.CHROMOSOME_SIZE):
-            with self.subTest(i=i):
-                if(i < Tetromino.CHROMOSOME_SIZE/2):
-                    self.assertEqual(offspring1.attributes[i], parent1.attributes[i])
-                    self.assertEqual(offspring2.attributes[i], parent2.attributes[i])
-                else:
-                    self.assertEqual(offspring1.attributes[i], parent2.attributes[i])
-                    self.assertEqual(offspring2.attributes[i], parent1.attributes[i])
+        # TODO: HARD CODED TO 3 GENES, NEED TO BE CHANGED IF ADDITIONAL GENES ARE ADDED TO THE CHROMOSOMES
+        self.assertEqual(offspring1.attributes[0] == parent1.attributes[0])
+        self.assertEqual(offspring1.attributes[1] == parent2.attributes[1])
+        self.assertEqual(offspring1.attributes[2] == parent1.attributes[2])
 
+
+        self.assertEqual(offspring2.attributes[1] == parent2.attributes[0])
+        self.assertEqual(offspring2.attributes[1] == parent1.attributes[1])
+        self.assertEqual(offspring2.attributes[1] == parent2.attributes[2])
 
     def test_selection(self):
         new_population = Tetromino.selection(self.population)
