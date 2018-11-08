@@ -20,13 +20,14 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 2  # Population % 2 need to be zero
+POPULATION_SIZE = 4  # Population % 2 need to be zero
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
 OVERALL_HIGHSCORE = 0
 WEIGHT_AGGREGATE_HEIGHT = 0.025
 K = 0.75  # Tournament selection parameter
+P_s = 0.5  # Crossover possibility of swapping variable
 
 # data plot variables
 BEST_CHROMOSOME_GENERATION_HIGH_SCORES = []
@@ -640,38 +641,16 @@ def crossover(parent1, parent2):
     offspring1 = Chromosome()
     offspring2 = Chromosome()
 
-    first_crossover_point = 0
-    second_crossover_point = 0
-
-    remaining_genes = CHROMOSOME_SIZE  # Only used to split the gene up into three parts
-    while remaining_genes > 0:
-        if remaining_genes > 0:
-            first_crossover_point += 1
-            remaining_genes -= 1
-        if remaining_genes > 0:
-            second_crossover_point += 1
-            remaining_genes -= 1
-
-        remaining_genes -= 1  # The last gene, if any, is in the third part and won't be swapped
-
-    second_crossover_point = first_crossover_point + second_crossover_point
-
-    # Generates offspring -- Only the part between point1 and point2 are swapped
     for i in range(CHROMOSOME_SIZE):
-        if first_crossover_point <= i & i <= second_crossover_point:
+        r = random.uniform(0, 1)
+
+        if r <= P_s:
             offspring1.attributes[i] = parent2.attributes[i]
             offspring2.attributes[i] = parent1.attributes[i]
         else:
             offspring1.attributes[i] = parent1.attributes[i]
             offspring2.attributes[i] = parent2.attributes[i]
 
-    print(parent1.attributes)
-    print(offspring1.attributes)
-    print("\n")
-
-    print(parent2.attributes)
-    print(offspring2.attributes)
-    print("\n")
     return offspring1, offspring2
 
 
