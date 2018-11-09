@@ -26,7 +26,7 @@ BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
 OVERALL_HIGHSCORE = 0
 WEIGHT_AGGREGATE_HEIGHT = 0.025
-K = 0.75  # Tournament selection parameter
+P_s = 0.5  # Crossover possibility of swapping variable
 
 # data plot variables
 BEST_CHROMOSOME_GENERATION_HIGH_SCORES = []
@@ -638,16 +638,16 @@ def create_population():
 def crossover(parent1, parent2):
     offspring1 = Chromosome()
     offspring2 = Chromosome()
-    crossover_point = math.ceil(CHROMOSOME_SIZE/2)
 
-    # Generates offspring1
     for i in range(CHROMOSOME_SIZE):
-        if i < crossover_point:
-            offspring1.genes[i] = parent1.genes[i]
-            offspring2.genes[i] = parent2.genes[i]
-        else:
+        r = random.uniform(0, 1)
+
+        if r <= P_s:
             offspring1.genes[i] = parent2.genes[i]
             offspring2.genes[i] = parent1.genes[i]
+        else:
+            offspring1.genes[i] = parent1.genes[i]
+            offspring2.genes[i] = parent2.genes[i]
 
     return offspring1, offspring2
 
