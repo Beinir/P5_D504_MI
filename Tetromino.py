@@ -20,7 +20,7 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 2  # Population % 2 need to be zero
+POPULATION_SIZE = 4  # Population % 2 need to be zero
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
@@ -658,20 +658,13 @@ def crossover(parent1, parent2):
 
     # Generates offspring -- Only the part between point1 and point2 are swapped
     for i in range(CHROMOSOME_SIZE):
-        if first_crossover_point <= i & i <= second_crossover_point:
+        if first_crossover_point <= i & i < second_crossover_point:
             offspring1.attributes[i] = parent2.attributes[i]
             offspring2.attributes[i] = parent1.attributes[i]
         else:
             offspring1.attributes[i] = parent1.attributes[i]
             offspring2.attributes[i] = parent2.attributes[i]
 
-    print(parent1.attributes)
-    print(offspring1.attributes)
-    print("\n")
-
-    print(parent2.attributes)
-    print(offspring2.attributes)
-    print("\n")
     return offspring1, offspring2
 
 
