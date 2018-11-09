@@ -539,19 +539,19 @@ def draw_status(score, level, best_move):
         DISPLAYSURF.blit(current_surf, current_rect)
 
         # draw chromosome attribute a
-        ca_surf = BASICFONT.render('a  =  %s' % round(CURRENT_CHROMOSOME.attributes[0], 3), True, TEXTCOLOR)
+        ca_surf = BASICFONT.render('a  =  %s' % round(CURRENT_CHROMOSOME.genes[0], 3), True, TEXTCOLOR)
         ca_rect = ca_surf.get_rect()
         ca_rect.topleft = (WINDOWWIDTH - 200, 320)
         DISPLAYSURF.blit(ca_surf, ca_rect)
 
         # draw chromosome attribute b
-        cb_surf = BASICFONT.render('b  =  %s' % round(CURRENT_CHROMOSOME.attributes[1], 3), True, TEXTCOLOR)
+        cb_surf = BASICFONT.render('b  =  %s' % round(CURRENT_CHROMOSOME.genes[1], 3), True, TEXTCOLOR)
         cb_rect = cb_surf.get_rect()
         cb_rect.topleft = (WINDOWWIDTH - 200, 340)
         DISPLAYSURF.blit(cb_surf, cb_rect)
 
         # draw chromosome attribute c
-        cc_surf = BASICFONT.render('c  =  %s' % round(CURRENT_CHROMOSOME.attributes[2], 3), True, TEXTCOLOR)
+        cc_surf = BASICFONT.render('c  =  %s' % round(CURRENT_CHROMOSOME.genes[2], 3), True, TEXTCOLOR)
         cc_rect = cc_surf.get_rect()
         cc_rect.topleft = (WINDOWWIDTH - 200, 360)
         DISPLAYSURF.blit(cc_surf, cc_rect)
@@ -568,19 +568,19 @@ def draw_status(score, level, best_move):
 
 
         # draw chromosome attribute a
-        a_surf = BASICFONT.render('a  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[0],3), True, TEXTCOLOR)
+        a_surf = BASICFONT.render('a  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.genes[0],3), True, TEXTCOLOR)
         a_rect = a_surf.get_rect()
         a_rect.topleft = (WINDOWWIDTH - 625, 110)
         DISPLAYSURF.blit(a_surf, a_rect)
 
         # draw chromosome attribute b
-        b_surf = BASICFONT.render('b  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[1],3), True, TEXTCOLOR)
+        b_surf = BASICFONT.render('b  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.genes[1],3), True, TEXTCOLOR)
         b_rect = b_surf.get_rect()
         b_rect.topleft = (WINDOWWIDTH - 625, 130)
         DISPLAYSURF.blit(b_surf, b_rect)
 
         # draw chromosome attribute c
-        c_surf = BASICFONT.render('c  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.attributes[2],3), True, TEXTCOLOR)
+        c_surf = BASICFONT.render('c  =  %s' % round(BEST_CHROMOSOME_IN_GENERATION.genes[2],3), True, TEXTCOLOR)
         c_rect = c_surf.get_rect()
         c_rect.topleft = (WINDOWWIDTH - 625, 150)
         DISPLAYSURF.blit(c_surf, c_rect)
@@ -620,10 +620,10 @@ class Chromosome:
 
     def __init__(self):
         self.high_score = 0
-        self.attributes = [0] * CHROMOSOME_SIZE
+        self.genes = [0] * CHROMOSOME_SIZE
 
         for i in range(CHROMOSOME_SIZE):
-            self.attributes[i] = (random.uniform(-10.0, 10.0))
+            self.genes[i] = (random.uniform(-10.0, 10.0))
 
 
 def create_population():
@@ -645,9 +645,9 @@ def crossover(parent1, parent2):
 
     remaining_genes = CHROMOSOME_SIZE  # Only used to split the gene up into three parts
     while remaining_genes > 0:
-        if remaining_genes > 0:
-            first_crossover_point += 1
-            remaining_genes -= 1
+        first_crossover_point += 1
+        remaining_genes -= 1
+
         if remaining_genes > 0:
             second_crossover_point += 1
             remaining_genes -= 1
@@ -659,11 +659,11 @@ def crossover(parent1, parent2):
     # Generates offspring -- Only the part between point1 and point2 are swapped
     for i in range(CHROMOSOME_SIZE):
         if first_crossover_point <= i & i < second_crossover_point:
-            offspring1.attributes[i] = parent2.attributes[i]
-            offspring2.attributes[i] = parent1.attributes[i]
+            offspring1.genes[i] = parent2.genes[i]
+            offspring2.genes[i] = parent1.genes[i]
         else:
-            offspring1.attributes[i] = parent1.attributes[i]
-            offspring2.attributes[i] = parent2.attributes[i]
+            offspring1.genes[i] = parent1.genes[i]
+            offspring2.genes[i] = parent2.genes[i]
 
     return offspring1, offspring2
 
@@ -759,13 +759,13 @@ def get_bumpiness(board):
 
 # region Remaining methods
 def get_expected_score(test_board, completed_lines, chromosome):
-    # Calculates the score of a given board state given the attributes of the chromosome
+    # Calculates the score of a given board state given the genes of the chromosome
     aggregate_height = get_aggregate_height(test_board)
     holes = get_number_of_holes(test_board)
 
-    a = chromosome.attributes[0]
-    b = chromosome.attributes[1]
-    c = chromosome.attributes[2]
+    a = chromosome.genes[0]
+    b = chromosome.genes[1]
+    c = chromosome.genes[2]
 
     expected_score = a * aggregate_height + b * completed_lines + c * holes
 
@@ -868,9 +868,9 @@ def write_generation_to_log(Chromosome, log_number):
     log = open("Log" + str(log_number), "a")
 
     log.write("Generation: " + str(GENERATION_NUMBER) + "\n")
-    log.write("a = " + str(Chromosome.attributes[0]) + "\n")
-    log.write("b = " + str(Chromosome.attributes[1]) + "\n")
-    log.write("c = " + str(Chromosome.attributes[2]) + "\n")
+    log.write("a = " + str(Chromosome.genes[0]) + "\n")
+    log.write("b = " + str(Chromosome.genes[1]) + "\n")
+    log.write("c = " + str(Chromosome.genes[2]) + "\n")
     log.write("High score = " + str(Chromosome.high_score) + "\n\n")
 
     log.close()
@@ -914,9 +914,9 @@ if __name__ == '__main__':
             show_text_screen('Game Over')
 
             # plot data
-            sum_a += CURRENT_CHROMOSOME.attributes[0]
-            sum_b += CURRENT_CHROMOSOME.attributes[1]
-            sum_c += CURRENT_CHROMOSOME.attributes[2]
+            sum_a += CURRENT_CHROMOSOME.genes[0]
+            sum_b += CURRENT_CHROMOSOME.genes[1]
+            sum_c += CURRENT_CHROMOSOME.genes[2]
             sum_high_score += CURRENT_CHROMOSOME.high_score
 
         # Data for plotting

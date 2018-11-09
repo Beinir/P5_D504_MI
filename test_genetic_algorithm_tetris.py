@@ -66,12 +66,12 @@ class TestGenetic(unittest.TestCase):
         x = Chromosome()
 
         self.assertEqual(0, x.high_score)
-        self.assertEqual(len(x.attributes), Tetromino.CHROMOSOME_SIZE)
+        self.assertEqual(len(x.genes), Tetromino.CHROMOSOME_SIZE)
 
-        # Checks that all attributes of a chromosome is between -10 and 10
-        for i in range(len(x.attributes)):
+        # Checks that all genes of a chromosome is between -10 and 10
+        for i in range(len(x.genes)):
             with self.subTest(i=i):
-                self.assertTrue((-10 < x.attributes[i]) & (x.attributes[i] < 10))
+                self.assertTrue((-10 < x.genes[i]) & (x.genes[i] < 10))
 
     def test_create_population(self):
         self.assertEqual(Tetromino.POPULATION_SIZE, len(self.population))
@@ -93,13 +93,13 @@ class TestGenetic(unittest.TestCase):
         self.assertNotEqual(offspring2, parent2)
 
         # TODO: HARD CODED TO 3 GENES, NEED TO BE CHANGED IF ADDITIONAL GENES ARE ADDED TO THE CHROMOSOMES
-        self.assertEqual(offspring1.attributes[0], parent1.attributes[0])
-        self.assertEqual(offspring1.attributes[1], parent2.attributes[1])
-        self.assertEqual(offspring1.attributes[2], parent1.attributes[2])
+        self.assertEqual(offspring1.genes[0], parent1.genes[0])
+        self.assertEqual(offspring1.genes[1], parent2.genes[1])
+        self.assertEqual(offspring1.genes[2], parent1.genes[2])
 
-        self.assertEqual(offspring2.attributes[0], parent2.attributes[0])
-        self.assertEqual(offspring2.attributes[1], parent1.attributes[1])
-        self.assertEqual(offspring2.attributes[2], parent2.attributes[2])
+        self.assertEqual(offspring2.genes[0], parent2.genes[0])
+        self.assertEqual(offspring2.genes[1], parent1.genes[1])
+        self.assertEqual(offspring2.genes[2], parent2.genes[2])
 
     def test_selection(self):
         new_population = Tetromino.selection(self.population)
@@ -255,9 +255,9 @@ class TestGenetic(unittest.TestCase):
             'color': 1
         }
 
-        self.chromosome.attributes[0] = -2
-        self.chromosome.attributes[1] = 10
-        self.chromosome.attributes[2] = -2
+        self.chromosome.genes[0] = -2
+        self.chromosome.genes[1] = 10
+        self.chromosome.genes[2] = -2
 
         best_move = Tetromino.find_best_move(board, piece, self.chromosome)
 
