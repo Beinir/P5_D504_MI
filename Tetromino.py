@@ -671,9 +671,13 @@ def crossover(parent1, parent2):
 def selection(population):
     new_population = []
 
+    high_score_sum = 0
+    for i in range(len(population)):  # Calculates the sum of high_scores
+        high_score_sum += population[i].high_score
+
     for i in range(int(len(population) / 2)):
-        parent1 = selectParent(population)
-        parent2 = selectParent(population)
+        parent1 = selectParent(population, high_score_sum)
+        parent2 = selectParent(population, high_score_sum)
 
         offspring1, offspring2 = crossover(parent1, parent2)
         new_population.extend([offspring1, offspring2])
@@ -681,25 +685,14 @@ def selection(population):
     return new_population
 
 
-def selectParent(population):
-    # Pops the first chromosome in order to not pick it again as the second
-    chromosome1 = population.pop(random.randint(0, len(population) - 1))
-    chromosome2 = population[random.randint(0, len(population) - 1)]
+def selectParent(population, high_score_sum):
+    r = random.randint(0, high_score_sum)
 
-    population.append(chromosome1)  # Adds the chromosome so it can be picked in the next call to selectParent
-
-    r = random.uniform(0, 1)
-
-    if r < K:
-        if chromosome1.high_score >= chromosome2.high_score:
-            return chromosome1
-        else:
-            return chromosome2
-    else:
-        if chromosome1.high_score <= chromosome2.high_score:
-            return chromosome1
-        else:
-            return chromosome2
+    current_sum = 0
+    for i in range(len(population)):
+        current_sum += population[i].high_score
+        if current_sum >= r:
+            return population[i]
 # endregion
 
 
