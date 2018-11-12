@@ -150,6 +150,9 @@ def get_next_move_expected_score(board, piece, weights):
 def get_one_step_reward(score, params, weights):
     return float(params[0] * weights[0] + params[1] * weights[1] + score * weights[2])
 
+# def get_one_step_reward(score, params, weights):
+#     return float(score)
+
 
 # def find_best_move(board, piece, weights, explore_change):
 #     move_list = []
@@ -176,7 +179,7 @@ def get_one_step_reward(score, params, weights):
 
 
 def get_quality(current_piece_score, next_piece_score, params, weights):
-    reward = get_one_step_reward(next_piece_score - current_piece_score, params, weights)
+    reward = get_one_step_reward(abs(next_piece_score - current_piece_score), params, weights)
     return current_piece_score + learning_rate * (reward + discount_rate * next_piece_score - current_piece_score)
 
 
