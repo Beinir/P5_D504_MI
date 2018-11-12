@@ -89,12 +89,6 @@ class TestGenetic(unittest.TestCase):
 
         self.assertEqual(len(offspring1.genes), Tetromino.CHROMOSOME_SIZE)
         self.assertEqual(len(offspring2.genes), Tetromino.CHROMOSOME_SIZE)
-
-    def test_selection(self):
-        new_population = Tetromino.selection(self.population)
-
-        self.assertNotEqual(self.population, new_population)
-        self.assertEqual(len(new_population), Tetromino.POPULATION_SIZE)
     # endregion
 
     # region Test get_bumpiness

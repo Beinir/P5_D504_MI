@@ -20,7 +20,7 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 4  # Population % 2 need to be zero
+POPULATION_SIZE = 10  # Population % 2 need to be zero
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
@@ -653,30 +653,30 @@ def crossover(parent1, parent2):
 
 
 def selection(population):
-    new_population = []
+    amount_to_be_replaced = int(POPULATION_SIZE * 0.2)
+    offspring = []
 
-    high_score_sum = 0
-    for i in range(len(population)):  # Calculates the sum of high_scores
-        high_score_sum += population[i].high_score
+    population.sort(key=operator.attrgetter('high_score'))
 
-    for i in range(int(len(population) / 2)):
-        parent1 = selectParent(population, high_score_sum)
-        parent2 = selectParent(population, high_score_sum)
+    # Removes weakest chromosomes
+    for i in range(amount_to_be_replaced):
+        population.pop(i)
+
+    current_parrent = len(population) - 1  # First parent is the strongest chromosome
+
+    for i in range(int(amount_to_be_replaced / 2)):
+        parent1 = population[current_parrent]
+        current_parrent -= 1
+        parent2 = population[current_parrent]
+        current_parrent -= 1
 
         offspring1, offspring2 = crossover(parent1, parent2)
-        new_population.extend([offspring1, offspring2])
+        offspring.append(offspring1)
+        offspring.append(offspring2)
 
-    return new_population
+    population.extend(offspring)
 
-
-def selectParent(population, high_score_sum):
-    r = random.randint(0, high_score_sum)
-
-    current_sum = 0
-    for i in range(len(population)):
-        current_sum += population[i].high_score
-        if current_sum >= r:
-            return population[i]
+    return population
 # endregion
 
 
@@ -864,7 +864,7 @@ def get_best_chromosome(population):
 
 
 if __name__ == '__main__':
-    assert(POPULATION_SIZE % 2 == 0)
+    assert(POPULATION_SIZE % 10 == 0)
 
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
     pygame.init()
