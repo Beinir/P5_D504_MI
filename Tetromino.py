@@ -20,7 +20,7 @@ import datetime
 # genetic variables
 MUTATION = 5
 CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 4  # Population % 2 need to be zero
+POPULATION_SIZE = 8  # Population % 2 need to be zero
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
@@ -59,26 +59,20 @@ TOPMARGIN = WINDOWHEIGHT - (BOARDHEIGHT * BOXSIZE) - 5
 WHITE = (255, 255, 255)
 GRAY = (185, 185, 185)
 BLACK = (0, 0, 0)
-RED = (155, 0, 0)
-LIGHTRED = (175, 20, 20)
-GREEN = (0, 155, 0)
-LIGHTGREEN = (20, 175, 20)
-BLUE = (0, 0, 155)
-LIGHTBLUE = (20, 20, 175)
-YELLOW = (155, 155, 0)
-LIGHTYELLOW = (175, 175, 20)
-CYAN = (0, 185, 185)
-LIGHTCYAN = (0, 255, 255)
-MAGENTA = (185, 0, 185)
-LIGHTMAGENTA = (255, 0, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+CYAN = (0, 255, 255)
+MAGENTA = (255, 0, 255)
+ORANGE = (255,170,0)
 
 BORDERCOLOR = BLUE
 BGCOLOR = BLACK
 TEXTCOLOR = WHITE
 TEXTSHADOWCOLOR = GRAY
-COLORS = (GRAY, BLUE, GRAY, GREEN, RED, YELLOW, CYAN, MAGENTA)
-LIGHTCOLORS = (WHITE, LIGHTBLUE, WHITE, LIGHTGREEN, LIGHTRED, LIGHTYELLOW,
-               LIGHTCYAN, LIGHTMAGENTA)
+COLORS = (ORANGE, BLUE, GRAY, GREEN, RED, YELLOW, CYAN, MAGENTA)
+LIGHTCOLORS = (ORANGE, BLUE, GRAY, GREEN, RED, YELLOW, CYAN, MAGENTA)
 
 TEMPLATEWIDTH = 5
 TEMPLATEHEIGHT = 5
@@ -256,7 +250,7 @@ def run_game(chromosome):
                 # falling piece has landed, set it on the board
                 add_to_board(board, falling_piece)
                 lines, board = remove_complete_lines(board)
-                score += lines * lines
+                score += calculate_score_addition(lines)
                 level, fall_freq = get_level_and_fall_freq(score)
                 falling_piece = None
             else:
@@ -276,6 +270,21 @@ def run_game(chromosome):
         FPSCLOCK.tick(FPS)
 
         chromosome.high_score = score
+
+
+def calculate_score_addition(lines_removed):
+    addition = 0
+
+    if lines_removed == 1:
+        addition = 1
+    elif lines_removed == 2:
+        addition = 3
+    elif lines_removed == 3:
+        addition = 5
+    elif lines_removed == 4:
+        addition = 8
+
+    return addition
 
 
 def make_text_objs(text, font, color):
@@ -378,6 +387,26 @@ def get_level_and_fall_freq(score):
     return level, fall_freq
 
 
+def get_piece_color(shape):
+    color = -1
+
+    if shape == "S":
+        color = 3
+    elif shape == "I":
+        color = 6
+    elif shape == "O":
+        color = 5
+    elif shape == "T":
+        color = 7
+    elif shape == "Z":
+        color = 4
+    elif shape == "J":
+        color = 1
+    else:  # shape == "l"
+        color = 0
+
+    return color
+
 def get_new_piece():
     # return a random new piece in a random rotation and color
     shape = random.choice(list(PIECES.keys()))
@@ -387,8 +416,7 @@ def get_new_piece():
                                    len(PIECES[shape]) - 1),
         'x': int(BOARDWIDTH / 2) - int(TEMPLATEWIDTH / 2),
         'y': -2,  # start it above the board (i.e. less than 0)
-        'color': random.randint(1,
-                                len(COLORS) - 1)
+        'color': get_piece_color(shape)
     }
     return new_piece
 
