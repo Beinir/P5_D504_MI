@@ -87,8 +87,19 @@ class TestGenetic(unittest.TestCase):
 
         offspring1, offspring2 = Tetromino.crossover(parent1, parent2)
 
-        self.assertEqual(len(offspring1.genes), Tetromino.CHROMOSOME_SIZE)
-        self.assertEqual(len(offspring2.genes), Tetromino.CHROMOSOME_SIZE)
+        self.assertNotEqual(offspring1, parent1)
+        self.assertNotEqual(offspring1, parent2)
+        self.assertNotEqual(offspring2, parent1)
+        self.assertNotEqual(offspring2, parent2)
+
+        # TODO: HARD CODED TO 3 GENES, NEED TO BE CHANGED IF ADDITIONAL GENES ARE ADDED TO THE CHROMOSOMES
+        self.assertEqual(offspring1.genes[0], parent1.genes[0])
+        self.assertEqual(offspring1.genes[1], parent2.genes[1])
+        self.assertEqual(offspring1.genes[2], parent1.genes[2])
+
+        self.assertEqual(offspring2.genes[0], parent2.genes[0])
+        self.assertEqual(offspring2.genes[1], parent1.genes[1])
+        self.assertEqual(offspring2.genes[2], parent2.genes[2])
     # endregion
 
     # region Test get_bumpiness

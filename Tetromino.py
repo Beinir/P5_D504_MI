@@ -26,7 +26,6 @@ BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
 OVERALL_HIGHSCORE = 0
 WEIGHT_AGGREGATE_HEIGHT = 0.025
-P_s = 0.5  # Crossover possibility of swapping variable
 
 # data plot variables
 BEST_CHROMOSOME_GENERATION_HIGH_SCORES = []
@@ -635,14 +634,30 @@ def create_population():
     return population
 
 
+# Two point crossover
 def crossover(parent1, parent2):
     offspring1 = Chromosome()
     offspring2 = Chromosome()
 
-    for i in range(CHROMOSOME_SIZE):
-        r = random.uniform(0, 1)
+    first_crossover_point = 0
+    second_crossover_point = 0
 
-        if r <= P_s:
+    remaining_genes = CHROMOSOME_SIZE  # Only used to split the gene up into three parts
+    while remaining_genes > 0:
+        first_crossover_point += 1
+        remaining_genes -= 1
+
+        if remaining_genes > 0:
+            second_crossover_point += 1
+            remaining_genes -= 1
+
+        remaining_genes -= 1  # The last gene, if any, is in the third part and won't be swapped
+
+    second_crossover_point = first_crossover_point + second_crossover_point
+
+    # Generates offspring -- Only the part between point1 and point2 are swapped
+    for i in range(CHROMOSOME_SIZE):
+        if first_crossover_point <= i & i < second_crossover_point:
             offspring1.genes[i] = parent2.genes[i]
             offspring2.genes[i] = parent1.genes[i]
         else:
