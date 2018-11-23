@@ -55,5 +55,3 @@ def create_log_file(q_table):
     # log.write("Mutation: " + str(MUTATION) + "\n\n")
 
     log.close()
-
-    return number

@@ -8,7 +8,8 @@ import math
 import Log
 import pyautogui
 import TabularQLearningFile
-from TabularQLearningFile import TabularQLearning as ql
+from tkinter import *
+import BeinirBee
 
 # region constants
 pyautogui.PAUSE = 0.2
@@ -105,12 +106,13 @@ def main():
     pygame.display.set_caption('Tetromino')
 
     q_learning = TabularQLearningFile.TabularQLearning()
-
-    show_text_screen('Tetromino')
-    while True: # game loop
-        runGame(q_learning)
-        #pygame.mixer.music.stop()
-        show_text_screen('Game Over')
+    q_learning.q_learn()
+    Log.create_log_file(q_learning.q_table)
+    # show_text_screen('Tetromino')
+    # while True:  # game loop
+    #     runGame(q_learning)
+    #     # pygame.mixer.music.stop()
+    #     show_text_screen('Game Over')
 
 
 def runGame(q_learning):

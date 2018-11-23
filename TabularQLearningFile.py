@@ -14,7 +14,7 @@ class TabularQLearning:
     max_aggregate_height = 19 * 9 + 18
     completed_lines = 4
     state_space = max_holes * max_bumpiness
-    pieces = len(tet.PIECES)
+    pieces = 7
     q_table = np.zeros((max_holes, max_bumpiness, pieces, action_space))
 
     total_episodes = 500000
@@ -27,9 +27,6 @@ class TabularQLearning:
     max_explore_change = 1.0
     min_explore_change = 0.01
     decay_rate = 0.01
-
-    def __init__(self, board):
-        self.state = board
 
     @staticmethod
     def get_aggregate_height(board):
@@ -166,12 +163,13 @@ class TabularQLearning:
 
     @staticmethod
     def get_piece_index(piece):
-        return tet.PIECES.index([piece['shape']])
+        # return tet.PIECES.index([piece['shape']])
+        return list(tet.PIECES.keys()).index(piece['shape'])
 
     def q_learn(self):
 
         for episode in range(self.total_episodes):
-
+            print(episode)
             board = tet.get_blank_board()
             piece = tet.get_new_piece()
 
