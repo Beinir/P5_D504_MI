@@ -4,12 +4,14 @@
 # Creative Commons BY-NC-SA 3.0 US
 import random, time, pygame, sys
 from pygame.locals import *
-import ReinforcementLearning as rl
 import math
 import Log
 import pyautogui
+import TabularQLearningFile
+from TabularQLearningFile import TabularQLearning as ql
+
 # region constants
-pyautogui.PAUSE = 0.03
+pyautogui.PAUSE = 0.2
 
 FPS = 50
 WINDOWWIDTH = 640
@@ -76,7 +78,7 @@ T_SHAPE_TEMPLATE = [['00000', '00100', '01110', '00000', '00000'],
                     ['00000', '00100', '01100', '00100', '00000']]
 
 
-SHAPES = {'S': S_SHAPE_TEMPLATE,
+PIECES = {'S': S_SHAPE_TEMPLATE,
           'Z': Z_SHAPE_TEMPLATE,
           'J': J_SHAPE_TEMPLATE,
           'L': L_SHAPE_TEMPLATE,
@@ -84,7 +86,7 @@ SHAPES = {'S': S_SHAPE_TEMPLATE,
           'O': O_SHAPE_TEMPLATE,
           'T': T_SHAPE_TEMPLATE}
 
-# SHAPES = {'I': I_SHAPE_TEMPLATE,
+# PIECES = {'I': I_SHAPE_TEMPLATE,
 #           'O': O_SHAPE_TEMPLATE}
 
 # endregion
@@ -97,19 +99,21 @@ def main():
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     # for i in range(0, 3):
     #     rl.weights.append(random.uniform(-10, 10))
-    print(rl.weights)
+    # print(rl.weights)
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
     pygame.display.set_caption('Tetromino')
 
+    q_learning = TabularQLearningFile.TabularQLearning()
+
     show_text_screen('Tetromino')
     while True: # game loop
-        runGame(rl.weights, rl.explore_change)
+        runGame(q_learning)
         #pygame.mixer.music.stop()
         show_text_screen('Game Over')
 
 
-def runGame(weights, explore_change):
+def runGame(q_learning):
     # setup variables for the start of the game
     board = get_blank_board()
     lastMoveDownTime = time.time()
@@ -118,12 +122,12 @@ def runGame(weights, explore_change):
     movingDown = False  # note: there is no movingUp variable
     movingLeft = False
     movingRight = False
-    level, fallFreq = get_level_and_fall_freq(rl.score)
+    score = 0
+    level, fallFreq = get_level_and_fall_freq(score)
     # fallingPiece = get_new_piece()
     fallingPiece = None
     next_piece = get_new_piece()
     current_move = [0, 0]
-    rl.score = 0
 
     while True: # main game loop
         if fallingPiece == None:
@@ -133,22 +137,23 @@ def runGame(weights, explore_change):
             lastFallTime = time.time()  # reset lastFallTime
 
             if not is_valid_position(board, fallingPiece):
-                rl.game_score_arr.append((rl.game_num, rl.score))
-                rl.explore_change = explore_change
-                Log.create_and_append_log_file(rl.game_score_arr, explore_change, weights, rl.game_num)
-                rl.game_num += 1
+                # rl.game_score_arr.append((rl.game_num, rl.score))
+                # rl.explore_change = explore_change
+                # Log.create_and_append_log_file(rl.game_score_arr, explore_change, weights, rl.game_num)
+                # rl.game_num += 1
 
                 return  # can't fit a new piece on the board, so game over
 
-            current_move, weights = rl.find_best_move(board, fallingPiece, weights, explore_change, next_piece)
+            # current_move, weights = rl.find_best_move(board, fallingPiece, weights, explore_change, next_piece)
 
-            if explore_change > rl.min_explore_change:
-                explore_change *= rl.decay_rate
-            else:
-                explore_change = 0
+            # if explore_change > rl.min_explore_change:
+            #     explore_change *= rl.decay_rate
+            # else:
+            #     explore_change = 0
 
         check_for_quit()
-        current_move = rl.make_move(current_move)
+        # current_move = rl.make_move(current_move)
+        current_move = ql.get_best_move_from_q_table(q_learning, board, fallingPiece)
         for event in pygame.event.get():  # event handling loop
             if event.type == KEYUP:
                 if (event.key == K_p):
@@ -183,13 +188,13 @@ def runGame(weights, explore_change):
 
                 # rotating the block (if there is room to rotate)
                 elif (event.key == K_UP or event.key == K_w):
-                    fallingPiece['rotation'] = (fallingPiece['rotation'] + 1) % len(SHAPES[fallingPiece['shape']])
+                    fallingPiece['rotation'] = (fallingPiece['rotation'] + 1) % len(PIECES[fallingPiece['shape']])
                     if not is_valid_position(board, fallingPiece):
-                        fallingPiece['rotation'] = (fallingPiece['rotation'] - 1) % len(SHAPES[fallingPiece['shape']])
+                        fallingPiece['rotation'] = (fallingPiece['rotation'] - 1) % len(PIECES[fallingPiece['shape']])
                 elif (event.key == K_q): # rotate the other direction
-                    fallingPiece['rotation'] = (fallingPiece['rotation'] - 1) % len(SHAPES[fallingPiece['shape']])
+                    fallingPiece['rotation'] = (fallingPiece['rotation'] - 1) % len(PIECES[fallingPiece['shape']])
                     if not is_valid_position(board, fallingPiece):
-                        fallingPiece['rotation'] = (fallingPiece['rotation'] + 1) % len(SHAPES[fallingPiece['shape']])
+                        fallingPiece['rotation'] = (fallingPiece['rotation'] + 1) % len(PIECES[fallingPiece['shape']])
 
                 # making the block fall faster with the down key
                 elif (event.key == K_DOWN or event.key == K_s):
@@ -227,8 +232,8 @@ def runGame(weights, explore_change):
                 # falling piece has landed, set it on the board
                 add_to_board(board, fallingPiece)
                 lines, board = remove_complete_lines(board)
-                rl.score += lines * lines
-                level, fallFreq = get_level_and_fall_freq(rl.score)
+                score += lines * lines
+                level, fallFreq = get_level_and_fall_freq(score)
                 fallingPiece = None
             else:
                 # piece did not land, just move the block down
@@ -238,7 +243,7 @@ def runGame(weights, explore_change):
         # drawing everything on the screen
         DISPLAYSURF.fill(BGCOLOR)
         draw_board(board)
-        draw_status(rl.score, level, current_move)
+        draw_status(score, level, current_move)
         draw_next_piece(next_piece)
         if fallingPiece != None:
             draw_piece(fallingPiece)
@@ -313,11 +318,11 @@ def get_level_and_fall_freq(score):
 
 def get_new_piece():
     # return a random new piece in a random rotation and color
-    shape = random.choice(list(SHAPES.keys()))
+    shape = random.choice(list(PIECES.keys()))
     new_piece = {
         'shape': shape,
         'rotation': random.randint(0,
-                                   len(SHAPES[shape]) - 1),
+                                   len(PIECES[shape]) - 1),
         'x': int(BOARDWIDTH / 2) - int(TEMPLATEWIDTH / 2),
         'y': -2,  # start it above the board (i.e. less than 0)
         'color': random.randint(1,
@@ -330,7 +335,7 @@ def add_to_board(board, piece):
     # fill in the board based on piece's location, shape, and rotation
     for x in range(TEMPLATEWIDTH):
         for y in range(TEMPLATEHEIGHT):
-            if SHAPES[piece['shape']][piece['rotation']][y][x] != BLANK and x + piece['x'] < 10 and y + piece['y'] < 20:
+            if PIECES[piece['shape']][piece['rotation']][y][x] != BLANK and x + piece['x'] < 10 and y + piece['y'] < 20:
                 board[x + piece['x']][y + piece['y']] = piece['color']
                 # DEBUGGING NOTE: SOMETIMES THIS IF STATEMENT ISN'T
                 # SATISFIED, WHICH NORMALLY WOULD RAISE AN ERROR.
@@ -355,7 +360,7 @@ def is_valid_position(board, piece, adj_x=0, adj_y=0):
     for x in range(TEMPLATEWIDTH):
         for y in range(TEMPLATEHEIGHT):
             is_above_board = y + piece['y'] + adj_y < 0
-            if is_above_board or SHAPES[piece['shape']][piece['rotation']][y][x] == BLANK:
+            if is_above_board or PIECES[piece['shape']][piece['rotation']][y][x] == BLANK:
                 continue
             if not is_on_board(x + piece['x'] + adj_x, y + piece['y'] + adj_y):
                 return False  # The piece is off the board
@@ -452,7 +457,7 @@ def draw_status(score, level, best_move):
 
 
 def draw_piece(piece, pixelx=None, pixely=None):
-    shape_to_draw = SHAPES[piece['shape']][piece['rotation']]
+    shape_to_draw = PIECES[piece['shape']][piece['rotation']]
     if pixelx is None and pixely is None:
         # if pixelx & pixely hasn't been specified, use the location stored in the piece data structure
         pixelx, pixely = convert_to_pixel_coords(piece['x'], piece['y'])
