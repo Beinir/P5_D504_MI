@@ -8,8 +8,6 @@ import math
 import Log
 import pyautogui
 import TabularQLearningFile
-from tkinter import *
-import BeinirBee
 
 # region constants
 pyautogui.PAUSE = 0.2
@@ -108,6 +106,7 @@ def main():
     q_learning = TabularQLearningFile.TabularQLearning()
     q_learning.q_learn()
     Log.create_log_file(q_learning.q_table)
+    print("Se log fil.")
     # show_text_screen('Tetromino')
     # while True:  # game loop
     #     runGame(q_learning)
@@ -155,7 +154,7 @@ def runGame(q_learning):
 
         check_for_quit()
         # current_move = rl.make_move(current_move)
-        current_move = ql.get_best_move_from_q_table(q_learning, board, fallingPiece)
+        current_move = q_learning.get_best_move_from_q_table(board, fallingPiece)
         for event in pygame.event.get():  # event handling loop
             if event.type == KEYUP:
                 if (event.key == K_p):

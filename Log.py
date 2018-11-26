@@ -39,17 +39,17 @@ def create_log_file(q_table):
     file_log_number.close()
 
     # Updates the number for the next log
-    file_log_number = open("LogNumber.txt", "w")
+    file_log_number = open("log/LogNumber.txt", "w")
     file_log_number.write(str(number + 1))
     file_log_number.close()
 
     # Creates the new log
-    new_file_name = "Log" + str(number)
+    new_file_name = "log/Log" + str(number)
     log = open(new_file_name, "w+")
 
     log.write("Date: " + str(datetime.datetime.now()) + "\n")
     log.write("Prototype: 1\n")
-    log.write(q_table)
+    log.write(str(q_table))
     # log.write("Population: " + str(POPULATION_SIZE) + "\n")
     # log.write("Chromosome size: " + str(CHROMOSOME_SIZE) + "\n")
     # log.write("Mutation: " + str(MUTATION) + "\n\n")
