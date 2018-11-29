@@ -19,12 +19,15 @@ import datetime
 
 # genetic variables
 MUTATION = 5
-CHROMOSOME_SIZE = 3
-POPULATION_SIZE = 32   # TODO: Currently need to be a power of two - fix this in crossover loop
+CHROMOSOME_SIZE = 4
+POPULATION_SIZE = 4   # TODO: Currently need to be a power of two - fix this in crossover loop
 GENERATION_NUMBER = 1
 BEST_CHROMOSOME_IN_GENERATION = None
 CURRENT_CHROMOSOME = None
 OVERALL_HIGHSCORE = 0
+WEIGHT_AGGREGATE_HEIGHT = 0.025
+K = 0.75  # Tournament selection parameter
+P_s = 0.5  # Crossover possibility of swapping variable
 
 # data plot variables
 BEST_CHROMOSOME_GENERATION_HIGH_SCORES = []
@@ -32,6 +35,7 @@ GENERATION_NUMBERS = []
 AVERAGE_A = []
 AVERAGE_B = []
 AVERAGE_C = []
+AVERAGE_D = []
 AVERAGE_HIGH_SCORE = []
 
 # Define settings and constants
@@ -253,7 +257,7 @@ def run_game(chromosome):
                 # falling piece has landed, set it on the board
                 add_to_board(board, falling_piece)
                 lines, board = remove_complete_lines(board)
-                score += lines * lines
+                score += calculate_score_addition(lines)
                 level, fall_freq = get_level_and_fall_freq(score)
                 falling_piece = None
             else:
@@ -275,6 +279,21 @@ def run_game(chromosome):
         chromosome.high_score = score
 
 
+def calculate_score_addition(lines_removed):
+    addition = 0
+
+    if lines_removed == 1:
+        addition = 1
+    elif lines_removed == 2:
+        addition = 3
+    elif lines_removed == 3:
+        addition = 5
+    elif lines_removed == 4:
+        addition = 8
+
+    return addition
+
+
 def make_text_objs(text, font, color):
     surf = font.render(text, True, color)
     return surf, surf.get_rect()
@@ -293,9 +312,10 @@ def make_plots():
     plt.grid(True)
 
     plt.figure(2)
-    plt.plot(GENERATION_NUMBERS, AVERAGE_A, 'bo-', label='a')
-    plt.plot(GENERATION_NUMBERS, AVERAGE_B, 'ro-', label='b')
-    plt.plot(GENERATION_NUMBERS, AVERAGE_C, 'go-', label='c')
+    plt.plot(GENERATION_NUMBERS, AVERAGE_A, 'bo-', label='Aggregate height')
+    plt.plot(GENERATION_NUMBERS, AVERAGE_B, 'ro-', label='Completed lines')
+    plt.plot(GENERATION_NUMBERS, AVERAGE_C, 'go-', label='Holes')
+    plt.plot(GENERATION_NUMBERS, AVERAGE_D, 'ko-', label='Bumpiness')
     plt.xlabel('Generation')
     plt.ylabel('Value')
     plt.title('Average weights per generation')
@@ -633,53 +653,55 @@ def create_population():
     return population
 
 
-def crossover(population):
-    offspring = []
+def crossover(parent1, parent2):
+    offspring1 = Chromosome()
+    offspring2 = Chromosome()
 
-    shuffle(population)  # Shuffles the population in order to pair parents randomly
-    while len(population) != 0:  # TODO: this line requires the population to be a power of 2
-        parent1 = population.pop()
-        parent2 = population.pop()
+    for i in range(CHROMOSOME_SIZE):
+        r = random.uniform(0, 1)
 
-        child = Chromosome()
+        if r <= P_s:
+            offspring1.attributes[i] = parent2.attributes[i]
+            offspring2.attributes[i] = parent1.attributes[i]
+        else:
+            offspring1.attributes[i] = parent1.attributes[i]
+            offspring2.attributes[i] = parent2.attributes[i]
 
-        for i in range(CHROMOSOME_SIZE):
-            if random.randint(1, 100) > MUTATION:
-                if random.randint(1, 2) == 1:
-                    child.attributes[i] = parent1.attributes[i]
-                else:
-                    child.attributes[i] = parent2.attributes[i]
-            else:
-                child.attributes[i] = random.uniform(-10.0, 10.0)
-
-        offspring.append(child)
-
-    return offspring
+    return offspring1, offspring2
 
 
 def selection(population):
-    copied_population = copy.copy(population)
-    strongest_chromosomes = []
+    new_population = []
 
-    shuffle(population)
-    for _ in range(int(len(population)/2)):  # Pairs up the population, except the last one if population/2 is odd
-        x = population.pop()
-        y = population.pop()
+    for i in range(int(len(population) / 2)):
+        parent1 = selectParent(population)
+        parent2 = selectParent(population)
 
-        if x.high_score > y.high_score:
-            strongest_chromosomes.append(x)
+        offspring1, offspring2 = crossover(parent1, parent2)
+        new_population.extend([offspring1, offspring2])
+
+    return new_population
+
+
+def selectParent(population):
+    # Pops the first chromosome in order to not pick it again as the second
+    chromosome1 = population.pop(random.randint(0, len(population) - 1))
+    chromosome2 = population[random.randint(0, len(population) - 1)]
+
+    population.append(chromosome1)  # Adds the chromosome so it can be picked in the next call to selectParent
+
+    r = random.uniform(0, 1)
+
+    if r < K:
+        if chromosome1.high_score >= chromosome2.high_score:
+            return chromosome1
         else:
-            strongest_chromosomes.append(y)
-
-    offspring = crossover(strongest_chromosomes)
-
-    copied_population.sort(key=operator.attrgetter('high_score'))
-
-    while len(offspring) != POPULATION_SIZE:
-        chromosome = copied_population.pop()
-        offspring.append(chromosome)
-
-    return offspring
+            return chromosome2
+    else:
+        if chromosome1.high_score <= chromosome2.high_score:
+            return chromosome1
+        else:
+            return chromosome2
 # endregion
 
 
@@ -694,7 +716,7 @@ def get_aggregate_height(board):
         for j in range(0, BOARDHEIGHT):  # Goes down from the top of the selected column
             if int(board[i][j]) > 0:
                 height = (BOARDHEIGHT - j)
-                heights[i] = height * (height * 0.1)
+                heights[i] = height * (height * 0.025)
                 break  # breaks to find the height of the next column
 
     return sum(heights)
@@ -742,12 +764,14 @@ def get_expected_score(test_board, completed_lines, chromosome):
     # Calculates the score of a given board state given the attributes of the chromosome
     aggregate_height = get_aggregate_height(test_board)
     holes = get_number_of_holes(test_board)
+    bumpiness = get_bumpiness(test_board)
 
     a = chromosome.attributes[0]
     b = chromosome.attributes[1]
     c = chromosome.attributes[2]
+    d = chromosome.attributes[3]
 
-    expected_score = a * aggregate_height + b * completed_lines + c * holes
+    expected_score = a * aggregate_height + b * completed_lines + c * holes * d * bumpiness
 
     return expected_score
 
@@ -885,6 +909,7 @@ if __name__ == '__main__':
         sum_a = 0
         sum_b = 0
         sum_c = 0
+        sum_d = 0
         sum_high_score = 0
 
         for i in range(0, len(population)):  # chromosome loop(one per game)
@@ -896,6 +921,7 @@ if __name__ == '__main__':
             sum_a += CURRENT_CHROMOSOME.attributes[0]
             sum_b += CURRENT_CHROMOSOME.attributes[1]
             sum_c += CURRENT_CHROMOSOME.attributes[2]
+            sum_d += CURRENT_CHROMOSOME.attributes[3]
             sum_high_score += CURRENT_CHROMOSOME.high_score
 
         # Data for plotting
@@ -905,6 +931,7 @@ if __name__ == '__main__':
         AVERAGE_A.append(sum_a / POPULATION_SIZE)
         AVERAGE_B.append(sum_b / POPULATION_SIZE)
         AVERAGE_C.append(sum_c / POPULATION_SIZE)
+        AVERAGE_D.append(sum_d / POPULATION_SIZE)
         AVERAGE_HIGH_SCORE.append(sum_high_score / POPULATION_SIZE)
 
         # Write to log
